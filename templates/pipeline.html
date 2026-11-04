@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Pipeline · PhishTrace{% endblock %}
+{% block content %}
+<div class="wrap">
+  <p class="kicker">Pipeline</p>
+  <h1>One order for every URL</h1>
+  <p class="lede">A check always runs these steps in this order. The score decides which tools open. The page behind the URL is not fetched, and no classifier is trained.</p>
+
+  <ol class="pipeline connected">
+    <li><span>1</span><b>Input</b><small>One http or https URL, at most 2048 characters.</small></li>
+    <li><span>2</span><b>Prepare</b><small>Host, registrable domain, suffix, port, and a digit-for-letter fold.</small></li>
+    <li><span>3</span><b>Detect</b><small>Fired rule weights, capped at 100, and a verdict.</small></li>
+    <li><span>4</span><b>Choose path</b><small>Below 21, 21–49, or 50 and above.</small></li>
+    <li><span>5</span><b>Retrieve</b><small>Local exhibits. One tag at a time on the agentic path.</small></li>
+    <li><span>6</span><b>Verify</b><small>A sentence stays only when an exhibit tag covers it.</small></li>
+    <li><span>7</span><b>Report</b><small>Verdict, reasons, withheld sentences, and what to do.</small></li>
+  </ol>
+
+  <section class="section">
+    <p class="kicker">Step 4</p>
+    <h2>The score picks the path</h2>
+    <p>Brand and suffix lists open when the score, a brand token, or a listed suffix calls for them. Verification still runs before the report.</p>
+    <div class="branch">
+      <article>
+        <p class="kicker">Light · below 21</p>
+        <h3>Short investigation</h3>
+        <p>Read the low-score exhibit. Retrieve any indicator that still fired. A brand token or a listed suffix can still open its registry.</p>
+      </article>
+      <article>
+        <p class="kicker">Standard · 21 to 49</p>
+        <h3>One exhibit per indicator</h3>
+        <p>Retrieve each fired indicator by its tag. Do not open both registries unless a token or a listed suffix is present.</p>
+      </article>
+      <article>
+        <p class="kicker">Deep · 50 and above</p>
+        <h3>Registries, then each indicator</h3>
+        <p>Open the brand registry and the suffix registry, then retrieve each fired indicator by tag.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="section">
+    <p class="kicker">Same signal, three stops</p>
+    <h2>Where a mode leaves the pipeline</h2>
+    <div class="grid-3">
+      <article class="card">
+        <h3>Rules only</h3>
+        <p>Stops after Detect. It publishes the indicators and a class label. It does not retrieve or verify.</p>
+      </article>
+      <article class="card">
+        <h3>Retrieval only</h3>
+        <p>Runs one word search and attaches that same set to every sentence. It does not check tags.</p>
+      </article>
+      <article class="card">
+        <h3>Agentic chain</h3>
+        <p>Runs the full pipeline. The writer receives only sentences the verifier accepted.</p>
+      </article>
+    </div>
+    <div class="actions">
+      <a class="button" href="/investigate">Check a URL</a>
+      <a class="button secondary" href="/methodology">See the weights</a>
+    </div>
+  </section>
+</div>
+{% endblock %}

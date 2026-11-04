@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+{% block title %}{{ record.id }} · PhishTrace{% endblock %}
+{% macro docket(report) %}
+<section class="verdict">
+  <p class="kicker">Why</p>
+  <ul class="recs">
+    {% for reason in report.detection.verdict.why %}
+    <li>{{ reason }}</li>
+    {% endfor %}
+  </ul>
+</section>
+<section class="section">
+  <p class="kicker">What to do</p>
+  <ul class="recs">
+    {% for line in report.recommendations %}<li>{{ line }}</li>{% endfor %}
+  </ul>
+</section>
+<details class="fold">
+  <summary>Score and evidence</summary>
+  <div class="grid-4" style="margin: 1rem 0;">
+    <article class="metric"><strong>{{ report.detection.score }}</strong><span>URL score out of 100</span></article>
+    <article class="metric"><strong>{{ report.metrics.unsupported_label }}</strong><span>Reasons without an exhibit</span></article>
+    <article class="metric"><strong>{{ report.metrics.support_label }}</strong><span>Reasons matched to an exhibit</span></article>
+    <article class="metric"><strong>{{ report.published|length }}</strong><span>Explanations kept</span></article>
+  </div>
+  <p class="muted">{{ report.mode_note }}</p>
+
+<section class="section">
+  <p class="kicker">Agent trail</p>
+  <ol class="steps">
+    {% for step in report.steps %}
+    <li>
+      <strong>{{ step.name }}</strong>
+      <span>{{ step.detail }}</span>
+      <span class="state state-{{ step.state }}">{{ step.state_label }}{% if step.state == 'done' %} · {{ step.ms_label }}{% endif %}</span>
+    </li>
+    {% endfor %}
+  </ol>
+</section>
+
+<section class="section grid-2">
+  <div>
+    <p class="kicker">Score breakdown</p>
+    <h2>{{ report.detection.path_label }} path</h2>
+    <p>{{ report.detection.path_reason }}</p>
+    {% if report.detection.indicators %}
+    <div class="bars">
+      {% for item in report.detection.indicators %}
+      <div>
+        <div class="weight"><span>{{ item.label }}</span><span>+{{ item.weight }}</span></div>
+        <div class="track"><span style="width: {{ [item.weight / 32 * 100, 100]|min }}%"></span></div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p>No weighted indicator fired.</p>
+    {% endif %}
+    {% if report.detection.raw_score != report.detection.score %}
+    <p class="muted">Uncapped sum {{ report.detection.raw_score }}, shown capped at 100.</p>
+    {% endif %}
+    {% if report.detection.notes %}
+    <ul class="note-list">
+      {% for note in report.detection.notes %}<li>{{ note }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+    <ul class="pills">
+      {% for pill in report.pills %}<li>{{ pill }}</li>{% endfor %}
+    </ul>
+  </div>
+  <div>
+    <p class="kicker">URL anatomy</p>
+    <table class="anatomy">
+      <tbody>
+        {% for row in report.anatomy %}
+        <tr><th>{{ row[0] }}</th><td style="overflow-wrap: anywhere;">{{ row[1] }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="section">
+  <p class="kicker">Checklist</p>
+  <p class="muted">Completeness uses the checks this score requires. A shorter mode does not get a shorter denominator.</p>
+  <ul class="checklist">
+    {% for item in report.checklist %}
+    <li>
+      <span class="state state-{{ item.state }}">{{ item.state_label }}</span>
+      <span>{{ item.label }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section class="section">
+  <p class="kicker">Published findings</p>
+  <h2>{{ report.published|length }} sentence{{ "" if report.published|length == 1 else "s" }}</h2>
+  {% for claim in report.published %}
+  <article class="claim">
+    <p class="badge {{ 'badge-ok' if claim.verdict == 'supported' else 'badge-bad' }}">{{ claim.badge }}</p>
+    <h3>{{ claim.text }}</h3>
+    {% if claim.citations %}
+    <ul class="cites">
+      {% for cite in claim.citations %}
+      <li>
+        {% if cite.letter %}Exhibit {{ cite.letter }} · {% endif %}
+        {% if cite.id.startswith('ex-') %}<a href="/knowledge#{{ cite.id }}">{{ cite.title }}</a>{% else %}{{ cite.title }}{% endif %}
+        — {{ "covers this indicator" if cite.matched else "does not cover this indicator" }}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">No exhibit attached.</p>
+    {% endif %}
+  </article>
+  {% endfor %}
+  {% if not report.published %}
+  <p>The verifier withheld every candidate sentence.</p>
+  {% endif %}
+</section>
+
+{% if report.exhibits %}
+<section class="section">
+  <p class="kicker">Exhibits</p>
+  {% for exhibit in report.exhibits %}
+  <article class="exhibit" id="exhibit-{{ exhibit.id }}">
+    <p class="kicker">Exhibit {{ exhibit.letter }} · {{ exhibit.source }}</p>
+    <h3>{% if exhibit.id.startswith('ex-') %}<a href="/knowledge#{{ exhibit.id }}">{{ exhibit.title }}</a>{% else %}{{ exhibit.title }}{% endif %}</h3>
+    <p>{{ exhibit.text }}</p>
+  </article>
+  {% endfor %}
+</section>
+{% endif %}
+
+{% if report.withheld %}
+<section class="section">
+  <p class="kicker">Audit · withheld</p>
+  <p>These sentences were candidates. They are not findings. They remain in the unsupported-claim rate.</p>
+  {% for claim in report.withheld %}
+  <article class="claim">
+    <p class="badge badge-hold">Withheld</p>
+    <h3>{{ claim.text }}</h3>
+  </article>
+  {% endfor %}
+</section>
+{% endif %}
+
+{% if report.policy %}
+<p class="kicker">Path policy</p>
+<blockquote class="callout calm"><p>{{ report.policy }}</p></blockquote>
+{% endif %}
+</details>
+{% endmacro %}
+
+{% block content %}
+<div class="wrap">
+  {% set primary = record.primary %}
+  <article class="docket">
+    <header class="docket-head">
+      <div>
+        <p class="kicker">Docket {{ record.id }}</p>
+        <h1>{{ primary.detection.verdict.label }}</h1>
+        <p>{{ primary.detection.verdict.headline }}</p>
+        <p class="url">{{ record.url }}</p>
+        <p class="meta">{{ record.created }} · The page was not opened.</p>
+      </div>
+      <p class="stamp stamp-{{ primary.detection.verdict.code }}">{{ primary.detection.score }}<small>out of 100</small></p>
+    </header>
+
+    <div class="actions no-print">
+      <a class="button" href="/investigate">Check another URL</a>
+      <button type="button" class="secondary" onclick="window.print()">Print</button>
+    </div>
+
+    {% if record.kind == 'compare' %}
+    <section class="section">
+      <p class="kicker">Same URL, same signal</p>
+      <h2>Where the modes separate</h2>
+      <p>On a single obvious token, one retrieval can be enough. On a mixed URL, one shared set of exhibits leaves some indicators without a covering citation. The agentic chain retrieves each indicator on its own tag and withholds the rest.</p>
+      <div class="table-wrap">
+        <table class="compare">
+          <thead>
+            <tr><th>Measure</th><th>Rules only</th><th>Retrieval only</th><th>Agentic chain</th></tr>
+          </thead>
+          <tbody>
+            {% for row in record.comparison_rows %}
+            <tr>
+              <th>{{ row.label }}</th>
+              <td>{{ row.rules }}</td>
+              <td>{{ row.retrieval }}</td>
+              <td>{{ row.agentic }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section class="section">
+      <p class="kicker">Full agentic docket</p>
+      <h2>{{ primary.mode_label }}</h2>
+      {{ docket(primary) }}
+    </section>
+    <details class="fold">
+      <summary>Rules-only docket</summary>
+      {{ docket(record.modes.rules) }}
+    </details>
+    <details class="fold">
+      <summary>Retrieval-only docket</summary>
+      {{ docket(record.modes.retrieval) }}
+    </details>
+    {% else %}
+    {{ docket(primary) }}
+    {% endif %}
+  </article>
+</div>
+{% endblock %}

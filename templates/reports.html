@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Dockets · PhishTrace{% endblock %}
+{% block content %}
+<div class="wrap">
+  <p class="kicker">Session memory</p>
+  <h1>Dockets</h1>
+  <p class="lede">Each investigation is kept in this process until the app stops or the list passes forty. Nothing is written to disk.</p>
+  {% if records %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Docket</th><th>When</th><th>URL</th><th>Signal</th><th>Kind</th></tr>
+      </thead>
+      <tbody>
+        {% for item in records %}
+        <tr>
+          <td><a href="/reports/{{ item.id }}">{{ item.id }}</a></td>
+          <td>{{ item.created }}</td>
+          <td style="overflow-wrap: anywhere;">{{ item.url }}</td>
+            <td>{{ item.primary.detection.verdict.label }} · {{ item.primary.detection.score }}</td>
+          <td>{{ item.primary.mode_label if item.kind == 'single' else 'Comparison' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="callout">
+    <p>No docket yet. <a href="/investigate">Run an investigation</a> and it will be listed here.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

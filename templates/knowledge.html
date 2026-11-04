@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Knowledge · PhishTrace{% endblock %}
+{% block content %}
+<div class="wrap">
+  <p class="kicker">Knowledge base · {{ kb_version }}</p>
+  <h1>Exhibits the verifier can cite</h1>
+  <p class="lede">These paragraphs were written for this workbench. A published finding links to the exhibit whose tag covers it. The brand table and the suffix table are the two registries the deep path opens.</p>
+
+  <div class="kb-tools">
+    <label for="kb-filter">Filter exhibits</label>
+    <input id="kb-filter" type="text" placeholder="Try: suffix, brand, low score">
+  </div>
+  <p id="kb-empty" class="callout" hidden>No exhibit uses that word.</p>
+
+  <section>
+    {% for doc in docs %}
+    <article class="kb-card" id="{{ doc.id }}" data-kb="{{ (doc.title ~ ' ' ~ doc.text ~ ' ' ~ doc.tags|join(' '))|lower }}">
+      <p class="kicker">{{ doc.source }}</p>
+      <h3>{{ doc.title }}</h3>
+      <p>{{ doc.text }}</p>
+      <p class="chips">Tags: {{ doc.tags|join(", ") }}</p>
+    </article>
+    {% endfor %}
+  </section>
+
+  <section class="section" id="brands">
+    <p class="kicker">Brand registry</p>
+    <h2>Listed domains</h2>
+    <p>A token such as a digit-for-letter swap counts as a mismatch only when the registrable domain is absent from that brand's row. The list is a classroom subset.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Brand</th><th>Listed domains</th></tr></thead>
+        <tbody>
+          {% for brand in brands %}
+          <tr><td>{{ brand.name }}</td><td>{{ brand.domains }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section" id="suffixes">
+    <p class="kicker">Suffix registry</p>
+    <h2>Higher-abuse list</h2>
+    <p>A suffix on this list adds a small weight. It does not finish the investigation. Suffixes that are absent, including .com, .org, .edu, and .gov, are not described as safe.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Suffix</th><th>Note</th></tr></thead>
+        <tbody>
+          {% for row in tlds %}
+          <tr><td>.{{ row.tld }}</td><td>{{ row.note }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+<script src="/static/js/knowledge.js"></script>
+{% endblock %}

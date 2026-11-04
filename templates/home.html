@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}PhishTrace · Phishing investigation workbench{% endblock %}
+{% block content %}
+<div class="wrap">
+  <section class="hero">
+    <div>
+      <p class="kicker">An agentic retrieval-augmented framework</p>
+      <h1>Is this URL phishing or a scam?</h1>
+      <p class="lede">Paste an address. PhishTrace says whether it is phishing or a scam, suspicious, or not phishing, and lists the reasons from the URL text. It does not open the page.</p>
+      <div class="actions">
+        <a class="button" href="/investigate">Check a URL</a>
+        <a class="button secondary" href="{{ examples[3].href }}">See a lookalike explained</a>
+      </div>
+    </div>
+    <aside class="specimen" aria-label="Illustration of a verdict">
+      <p class="kicker">Illustration · not a live case</p>
+      <p class="score" style="font-size: 2.4rem;">Phishing / scam</p>
+      <p><strong>Why:</strong> PayPal-like token on an unlisted .tk domain, plus login and verify words, on plain HTTP.</p>
+      <p class="muted">A listed host such as paypal.com/signin stays “Not phishing,” because those words belong there.</p>
+    </aside>
+  </section>
+
+  <section class="section" aria-label="Pipeline">
+    <p class="kicker">Pipeline</p>
+    <h2>What happens when you check a URL</h2>
+    <ol class="pipeline">
+      <li><span>1</span><b>Input</b><small>URL text only. The page is not opened.</small></li>
+      <li><span>2</span><b>Features</b><small>Host, suffix, brand token, lure words, shape.</small></li>
+      <li><span>3</span><b>Signal</b><small>Published rule weights, capped at 100.</small></li>
+      <li><span>4</span><b>Retrieve</b><small>Local exhibits, one search or one tag at a time.</small></li>
+      <li><span>5</span><b>Verify</b><small>A sentence stands only when a tag covers it.</small></li>
+      <li><span>6</span><b>Report</b><small>Score, exhibits, withheld sentences, next steps.</small></li>
+    </ol>
+    <p style="margin-top: 0.9rem;"><a href="/pipeline">Open the full pipeline</a>, including the branch the score chooses.</p>
+  </section>
+
+  <section class="section" id="problem">
+    <p class="kicker">Problem statement</p>
+    <h2>Detection is the first signal. It is not the investigation.</h2>
+    <div class="prose">
+      <p>Phishing URLs and websites are still treated as a binary classification task. A model score can flag a known pattern. The score does not open a brand list, does not attach a reason a person can check, and does not keep unsupported sentences out of the write-up.</p>
+      <p>Retrieval can add cybersecurity context. One retrieve-and-answer step still uses a single query. It cannot choose the next source from the score, and it can attach a paragraph that does not cover the claim.</p>
+      <p>The investigation needs a controlled sequence. The next check depends on the score. URL features, the brand list, the suffix list, and the knowledge base are separate tools. Verification stays separate from report writing, so the docket cannot cite a sentence the exhibits do not cover.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <p class="kicker">Where to go</p>
+    <div class="grid-3">
+      <a class="card" href="/investigate"><h3>Investigate</h3><p>Paste a URL or open a classroom example. Compare all three modes on one signal.</p></a>
+      <a class="card" href="/methodology"><h3>Method</h3><p>Rule weights, tool order, and how a docket is produced.</p></a>
+      <a class="card" href="/knowledge"><h3>Knowledge</h3><p>Every local exhibit, the brand list, and the higher-abuse suffixes.</p></a>
+      <a class="card" href="/data"><h3>Data</h3><p>PhiUSIIL, OpenPhish, and the Phishing Database, scored with the same rules. No model is fit.</p></a>
+      <a class="card" href="/reports"><h3>Dockets</h3><p>Investigations stored in memory for this run of the app.</p></a>
+    </div>
+  </section>
+
+  {% if recent %}
+  <section class="section">
+    <p class="kicker">This session</p>
+    <h2>Latest dockets</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Docket</th><th>URL</th><th>Signal</th><th>Mode</th></tr></thead>
+        <tbody>
+          {% for item in recent %}
+          <tr>
+            <td><a href="/reports/{{ item.id }}">{{ item.id }}</a></td>
+            <td>{{ item.url }}</td>
+            <td>{{ item.primary.detection.score }} · {{ item.primary.detection.level_label }}</td>
+            <td>{{ item.kind }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

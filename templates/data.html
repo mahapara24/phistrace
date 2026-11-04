@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block title %}Data · PhishTrace{% endblock %}
+{% block content %}
+<div class="wrap">
+  <p class="kicker">Public datasets</p>
+  <h1>URL files this workbench can read</h1>
+  <p class="lede">Each file is scored with the same rules as a docket. The page behind a URL is not opened, and no model is trained. Open a sample here. Do not paste these addresses into a browser.</p>
+
+  {% if public_sets.available %}
+  {% for item in public_sets.sets %}
+  <section class="section">
+    <p class="kicker">Snapshot {{ public_sets.built }}</p>
+    <h2>{{ item.name }}</h2>
+    <p>{{ item.note }} <a href="{{ item.source_url }}">Source</a>. {{ item.citation }}</p>
+    <div class="grid-4">
+      <article class="metric"><strong>{{ "{:,}".format(item.n) }}</strong><span>URLs scored</span></article>
+      <article class="metric"><strong>{{ item.signal.mean }}</strong><span>Mean rule score</span></article>
+      <article class="metric"><strong>{{ item.signal.phishing_verdict }}%</strong><span>Read as phishing / scam</span></article>
+      <article class="metric"><strong>{{ item.signal.suspicious_verdict }}%</strong><span>Read as suspicious</span></article>
+    </div>
+    <div class="table-wrap" style="margin-top: 1rem;">
+      <table>
+        <thead>
+          <tr><th>Listed class</th><th>This app</th><th>Reasons</th><th>URL</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for row in item.samples %}
+          <tr>
+            <td class="label-phish">{{ row.label }}</td>
+            <td>{{ row.score }} · {{ row.verdict }}</td>
+            <td>{{ row.reasons }}</td>
+            <td style="overflow-wrap: anywhere; max-width: 28rem;">{{ row.url }}</td>
+            <td><a href="/run?mode=agentic&amp;url={{ row.url|urlencode }}">Open docket</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="muted" style="margin-top: 0.6rem;">{{ "{:,}".format(item.skipped) }} rows skipped. {{ item.signal.high }}% reach a score of 50 or more. {{ item.signal.clean_verdict }}% are not identified as phishing from the address alone.</p>
+  </section>
+  {% endfor %}
+  {% else %}
+  <div class="callout">
+    <p>The extra URL summaries are missing. Place the raw lists in <code>data/raw/</code> and run <code>python scripts/build_public_summaries.py</code>.</p>
+  </div>
+  {% endif %}
+
+  <section class="section">
+  <p class="kicker">Public dataset</p>
+  <h2>PhiUSIIL phishing and legitimate URLs</h2>
+  {% if not summary.available %}
+  <div class="callout">
+    <p>The summary file is missing. Download the UCI zip into <code>data/raw/phiusiil.zip</code> and run <code>python scripts/build_phiusiil_summary.py</code>.</p>
+  </div>
+  {% else %}
+  <div class="callout">
+    <p><strong>{{ summary.source_name }}.</strong> {{ summary.note }} The file is public on the UCI Machine Learning Repository under {{ summary.license }}. This page scores those URLs with the same rules as the docket. It does not fit a model, and it does not open the URLs.</p>
+    <p><a href="{{ summary.source_url }}">UCI dataset 967</a>. {{ summary.citation }}</p>
+  </div>
+  <p style="margin-top: 1rem;">{{ summary.length_sentence }} A high signal means a score of 50 or more. That is a reading of the URL text, not a claim that every phishing URL in the file looks like one of the classroom examples.</p>
+
+  <section class="section">
+    <div class="grid-4">
+      <article class="metric"><strong>{{ "{:,}".format(summary.n) }}</strong><span>URLs scored</span></article>
+      <article class="metric"><strong>{{ "{:,}".format(summary.phishing_n) }}</strong><span>Phishing (label 0)</span></article>
+      <article class="metric"><strong>{{ "{:,}".format(summary.legitimate_n) }}</strong><span>Legitimate (label 1)</span></article>
+      <article class="metric"><strong>{{ summary.skipped }}</strong><span>Rows skipped</span></article>
+    </div>
+  </section>
+
+  <section class="section">
+    <p class="kicker">Rule signal on this file</p>
+    <h2>How often the reasons add up</h2>
+    <div class="grid-2">
+      <article class="card">
+        <h3>Phishing URLs</h3>
+        <p>Mean score {{ summary.signal.phishing_mean }}. {{ summary.signal.phishing_high }}% reach a high or critical signal. {{ summary.signal.phishing_moderate }}% reach at least the moderate band.</p>
+      </article>
+      <article class="card">
+        <h3>Legitimate URLs</h3>
+        <p>Mean score {{ summary.signal.legitimate_mean }}. {{ summary.signal.legitimate_high }}% reach a high or critical signal. {{ summary.signal.legitimate_moderate }}% reach at least the moderate band.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="section">
+    <p class="kicker">Why a URL is flagged</p>
+    <h2>Share of each class where an indicator fires</h2>
+    <p class="legend"><span><i class="swatch phish"></i>Phishing</span><span><i class="swatch legit"></i>Legitimate</span></p>
+    {% for row in summary.indicators %}
+    <div class="bar-row">
+      <div>{{ row.label }}</div>
+      <div>
+        <div class="track"><span style="width: {{ row.phish }}%"></span></div>
+        <div class="track legit"><span style="width: {{ row.legit }}%"></span></div>
+        <small class="muted">{{ row.phish }}% phishing · {{ row.legit }}% legitimate</small>
+      </div>
+    </div>
+    {% endfor %}
+  </section>
+
+  <section class="section">
+    <p class="kicker">URL shape</p>
+    <h2>Means by class</h2>
+    {% for row in summary.numeric %}
+    <div class="bar-row">
+      <div>{{ row.label }}</div>
+      <div>
+        <div class="track" title="Phishing mean {{ row.phish }}"><span style="width: {{ row.phish_width }}%"></span></div>
+        <div class="track legit" title="Legitimate mean {{ row.legit }}"><span style="width: {{ row.legit_width }}%"></span></div>
+        <small class="muted">{{ row.phish }} phishing · {{ row.legit }} legitimate</small>
+      </div>
+    </div>
+    {% endfor %}
+  </section>
+
+  <section class="section">
+    <p class="kicker">Binary cues</p>
+    <h2>Share of each class</h2>
+    {% for row in summary.binary %}
+    <div class="bar-row">
+      <div>{{ row.label }}</div>
+      <div>
+        <div class="track"><span style="width: {{ row.phish }}%"></span></div>
+        <div class="track legit"><span style="width: {{ row.legit }}%"></span></div>
+        <small class="muted">{{ row.phish }}% phishing · {{ row.legit }}% legitimate</small>
+      </div>
+    </div>
+    {% endfor %}
+  </section>
+
+  <section class="section">
+    <p class="kicker">Sample from the file</p>
+    <h2>Sixteen URLs, drawn across the file</h2>
+    <p>These are research records. Investigate them inside this app. Do not paste them into a browser.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Class</th><th>Signal</th><th>Reasons</th><th>URL</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for row in summary.samples %}
+          <tr>
+            <td class="{{ 'label-phish' if row.label == 'phishing' else 'label-legit' }}">{{ row.label }}</td>
+            <td>{{ row.score }} · {{ row.level }}</td>
+            <td>{{ row.reasons }}</td>
+            <td style="overflow-wrap: anywhere; max-width: 28rem;">{{ row.url }}</td>
+            <td><a href="/run?mode=agentic&amp;url={{ row.url|urlencode }}">Open docket</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section">
+    <p class="kicker">Related public file</p>
+    <h2>UCI Phishing Websites, 2015</h2>
+    <p>Mohammad, Thabtah, and McCluskey published UCI dataset 327. That file stores 30 engineered features for 11,055 websites. It does not store the URL string, so this workbench cannot score it.</p>
+  </section>
+
+  <section class="section">
+    <p class="kicker">Related public file</p>
+    <h2>High-risk PhishTank URLs, 2022</h2>
+    <p>Korkmaz, Kocyigit, Sahingoz, and Diri collected 36,173 phishing URLs and 51,316 legitimate URLs from PhishTank, for 2006–2021. The legitimate rows are addresses people submitted as suspicious and that voters later marked not phishing. The file also stores page content. This workbench does not open pages, so it does not score that content.</p>
+    <p>One address from that pattern is <code>https://www.paypal.com/cgi-bin/webscr?cmd=3D_login-run</code>. The host is the real PayPal domain, which is why a brand check alone says it is fine. The query still contains <code>=3D</code>. Email encodes an equals sign as <code>=3D</code>, so this is the raw form of <code>cmd=_login-run</code>, the login command copied in phishing mail. The same command on the real host without <code>=3D</code> stays “Not phishing.” A brand domain written in the path of a different host, such as <code>/www.paypal.com/cgi-bin/webscr</code> on another site, is a separate mismatch.</p>
+    <p><a href="https://www.kaggle.com/datasets/mehmetkorkmaz/high-risk-url-and-content-dataset">High-Risk URL and Content Dataset</a>. Korkmaz, Kocyigit, Sahingoz, and Diri, Elektronika ir Elektrotechnika, 2022.</p>
+  </section>
+
+  <section class="section">
+    <p class="kicker">Glossary</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Feature</th><th>Meaning on this page</th></tr></thead>
+        <tbody>
+          {% for item in summary.glossary %}
+          <tr><td>{{ item.term }}</td><td>{{ item.meaning }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Investigate · PhishTrace{% endblock %}
+{% block content %}
+<div class="wrap">
+  <p class="kicker">Workbench</p>
+  <h1>Check a URL</h1>
+  <p class="lede">The result is a verdict — phishing / scam, suspicious, or not phishing — and the reasons for it. The app reads the address only. It does not open the page. Classroom examples are synthetic or reserved documentation addresses.</p>
+
+  <form class="form-card" method="post" action="/investigate">
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+    <div class="form-row">
+      <div>
+        <label for="url">URL</label>
+        <input id="url" name="url" type="text" required maxlength="2048" autocomplete="off" placeholder="https://example.com/path" value="{{ prefill_url }}">
+      </div>
+      <div>
+        <label for="mode">Mode</label>
+        <select id="mode" name="mode">
+          <option value="agentic" {% if prefill_mode == 'agentic' %}selected{% endif %}>Agentic chain</option>
+          <option value="compare" {% if prefill_mode == 'compare' %}selected{% endif %}>Compare all three</option>
+          <option value="retrieval" {% if prefill_mode == 'retrieval' %}selected{% endif %}>Retrieval only</option>
+          <option value="rules" {% if prefill_mode == 'rules' %}selected{% endif %}>Rules only</option>
+        </select>
+      </div>
+    </div>
+    <div class="actions">
+      <button type="submit">Check this URL</button>
+    </div>
+  </form>
+
+  <section class="section">
+    <div class="grid-3">
+      <article class="card">
+        <p class="kicker">Rules only</p>
+        <h3>The signal by itself</h3>
+        <p>Publishes each fired indicator and a class label. No exhibit is attached. This is the stand-in for a bare detector output.</p>
+      </article>
+      <article class="card">
+        <p class="kicker">Retrieval only</p>
+        <h3>One search</h3>
+        <p>Searches the knowledge base with the URL's words and attaches that same set to every sentence. Tags are not checked.</p>
+      </article>
+      <article class="card">
+        <p class="kicker">Agentic chain</p>
+        <h3>Score chooses the tools</h3>
+        <p>Opens the registries the score calls for, retrieves each indicator by tag, and withholds any sentence an exhibit does not cover.</p>
+      </article>
+    </div>
+  </section>
+
+  {% if public_sets.available %}
+  <section class="section">
+    <p class="kicker">Public dataset addresses</p>
+    <h2>One click reads an address from a published list</h2>
+    <p>These rows come from OpenPhish and the Phishing Database. The check uses the URL text only. It does not open the page. Do not paste these addresses into a browser.</p>
+    {% for item in public_sets.sets %}
+    <h3 style="margin-top: 1.1rem;">{{ item.name }}</h3>
+    <p class="muted">{{ item.note }}</p>
+    <ul class="examples">
+      {% for row in item.samples %}
+      <li>
+        <a href="/run?mode=agentic&amp;url={{ row.url|urlencode }}">{{ row.url }}</a>
+        <div><small class="muted">Listed as phishing · rule score {{ row.score }} · {{ row.verdict }}</small></div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  <section class="section">
+    <p class="kicker">Classroom examples</p>
+    <h2>One click runs a docket</h2>
+    <ul class="examples">
+      {% for example in examples %}
+      <li>
+        <a href="{{ example.href }}">{{ example.url }}</a>
+        <div><small class="muted">{{ example.caption }} · {{ example.mode }}</small></div>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+{% endblock %}

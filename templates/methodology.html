@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Method · PhishTrace{% endblock %}
+{% block content %}
+<div class="wrap">
+  <p class="kicker">Method</p>
+  <h1>How a docket is produced</h1>
+  <p class="lede">A check runs input, preparation, a rule signal, retrieval, a separate verifier, and a report. The signal is a table of weights you can read. No classifier is trained.</p>
+
+  <ol class="pipeline">
+    <li><span>1</span><b>Input</b><small>A single http or https URL, at most 2048 characters.</small></li>
+    <li><span>2</span><b>Prepare</b><small>Host, registrable domain, suffix, port, tokens, and a digit-for-letter fold.</small></li>
+    <li><span>3</span><b>Signal</b><small>Sum of fired weights, capped at 100. Bands at 21, 50, and 75.</small></li>
+    <li><span>4</span><b>Retrieve</b><small>Tag lookup in the agentic path, or one word-overlap search.</small></li>
+    <li><span>5</span><b>Agents</b><small>Fixed roles: detect, choose path, registries, retrieve, verify, report.</small></li>
+    <li><span>6</span><b>Docket</b><small>Published sentences, withheld sentences, checklist, and guidance.</small></li>
+  </ol>
+
+  <section class="section">
+    <p class="kicker">Step 3 · the signal</p>
+    <h2>Weights, not a fitted model</h2>
+    <div class="callout">
+      <p>No classifier is trained, and the site does not print accuracy, precision, recall, F1, ROC-AUC, or PR-AUC. Those numbers need a fitted model and a labeled test set. The score is the sum of the weights below.</p>
+    </div>
+    <div class="table-wrap" style="margin-top: 1rem;">
+      <table>
+        <thead><tr><th>Indicator</th><th>Weight</th><th>When it fires</th></tr></thead>
+        <tbody>
+          {% for rule in rules %}
+          <tr>
+            <td>{{ rule.label }}</td>
+            <td>{{ rule.weight }}</td>
+            <td>{{ rule.detail }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="muted" style="margin-top: 0.7rem;">Score = min(100, sum of fired weights). Low is 0–20. Moderate is 21–49. High is 50–74. Critical is 75–100.</p>
+  </section>
+
+  <section class="section">
+    <p class="kicker">Steps 4 and 5 · retrieval and agents</p>
+    <h2>The next tool depends on the score</h2>
+    <div class="grid-3">
+      <article class="card">
+        <h3>Light · below 21</h3>
+        <p>Read the low-score exhibit. Retrieve any indicator that still fired. A brand token or a listed suffix can still open its registry.</p>
+      </article>
+      <article class="card">
+        <h3>Standard · 21 to 49</h3>
+        <p>Retrieve one exhibit per fired indicator, using the indicator's tag. Do not open both registries unless a token or a listed suffix is present.</p>
+      </article>
+      <article class="card">
+        <h3>Deep · 50 and above</h3>
+        <p>Open the brand registry and the suffix registry, then retrieve each fired indicator by tag. Verification still runs before the report.</p>
+      </article>
+    </div>
+    <div class="prose" style="margin-top: 1rem;">
+      <p>Agents here are fixed functions with tools. They are not a generative model. The verifier is a different function from the writer. In the agentic mode the writer receives only sentences the verifier marked as covered. In the other two modes the writer publishes the candidate sentences anyway, which is why their unsupported-claim rate stays visible.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <p class="kicker">Metrics this deployment computes</p>
+    <h2>Evidence, not a leaderboard</h2>
+    <div class="grid-2">
+      <article class="card">
+        <h3>Unsupported-claim rate</h3>
+        <p>Candidate sentences that lack a covering exhibit, divided by all candidate sentences. Withheld sentences still count. The agentic report can withhold them so the published pages stay covered.</p>
+      </article>
+      <article class="card">
+        <h3>Support in published findings</h3>
+        <p>The share of published sentences that have a covering exhibit. Rules-only is 0 when it publishes a class label. Agentic stays at 100% when every published sentence is covered.</p>
+      </article>
+      <article class="card">
+        <h3>Investigation completeness</h3>
+        <p>Required checks that actually ran, divided by the checks this score calls for. A mode is not graded against a shorter checklist of its own. The signal is held constant across the three modes.</p>
+      </article>
+      <article class="card">
+        <h3>Time</h3>
+        <p>Retrieval time is the local search. Chain time is the whole mode. Both are measured on this machine. No network round trip is included, because no request is sent.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="section">
+    <p class="kicker">Boundaries</p>
+    <h2>What the docket cannot claim</h2>
+    <ul class="clean">
+      <li>The page, the certificate, and the redirect target are unseen. A shortener stays a shortener.</li>
+      <li>The brand list and the suffix list are classroom lists, not a live threat feed.</li>
+      <li>A low score is a reason to keep the investigation short. It is not permission to type a password.</li>
+      <li>A person who controls a URL can change its shape. These rules are a first signal for a docket, not a control to deploy alone.</li>
+      <li>The data page scores PhiUSIIL, an OpenPhish snapshot, and the Phishing Database lists. It reports how often these fixed rules fire. It does not train on those files.</li>
+    </ul>
+  </section>
+
+  <section class="section">
+    <p class="kicker">HTTP interface</p>
+    <h2>The same chain from code</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Method</th><th>Path</th><th>Role</th></tr></thead>
+        <tbody>
+          <tr><td>POST</td><td>/api/investigate</td><td>JSON body <code>url</code> and <code>mode</code>. Returns a stored docket.</td></tr>
+          <tr><td>GET</td><td>/api/reports</td><td>Dockets kept in memory for this process.</td></tr>
+          <tr><td>GET</td><td>/api/reports/{id}</td><td>One docket.</td></tr>
+          <tr><td>GET</td><td>/api/knowledge</td><td>Exhibits, brands, and suffixes.</td></tr>
+          <tr><td>GET</td><td>/api/rules</td><td>The weight table.</td></tr>
+          <tr><td>GET</td><td>/api/eda</td><td>PhiUSIIL summary used on the data page.</td></tr>
+          <tr><td>GET</td><td>/api/health</td><td>Process status. Model and fetcher are off.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted" style="margin-top: 0.7rem;">Interactive schema: <a href="/docs">/docs</a>.</p>
+  </section>
+</div>
+{% endblock %}
