@@ -52,8 +52,8 @@
   <section class="section">
     <p class="kicker">Public dataset addresses</p>
     <h2>One click reads an address from a published list</h2>
-    <p>These rows come from OpenPhish and the Phishing Database. The check uses the URL text only. It does not open the page. Do not paste these addresses into a browser.</p>
-    {% for item in public_sets.sets %}
+    <p>These rows come from the Phishing Database. The check uses the URL text only. It does not open the page. Do not paste these addresses into a browser.</p>
+    {% for item in public_sets.sets if item.samples %}
     <h3 style="margin-top: 1.1rem;">{{ item.name }}</h3>
     <p class="muted">{{ item.note }}</p>
     <ul class="examples">

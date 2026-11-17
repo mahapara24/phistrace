@@ -36,28 +36,29 @@ N_TLDS = len(SUSPICIOUS_TLDS)
 
 # ----------------------------------------------------------------- references
 REFS = {
-    "apwg": "Anti-Phishing Working Group, “Phishing Activity Trends Reports,” APWG, 2024–2025. [Online]. Available: https://apwg.org/trendsreports/",
-    "interisle": "Interisle Consulting Group, “Phishing Landscape 2024: An annual study of the scope and distribution of phishing,” Jul. 2024. [Online]. Available: https://interisle.net/PhishingLandscape2024",
-    "prasad": "A. Prasad and S. Chandra, “PhiUSIIL: A diverse security profile empowered phishing URL detection framework based on similarity index and incremental learning,” Computers & Security, vol. 136, Art. no. 103545, 2024, doi: 10.1016/j.cose.2023.103545.",
-    "mohammad12": "R. M. Mohammad, F. Thabtah, and L. McCluskey, “An assessment of features related to phishing websites using an automated technique,” in Proc. Int. Conf. Internet Technology and Secured Transactions (ICITST), 2012, pp. 492–497.",
-    "uci327": "R. Mohammad and L. McCluskey, “Phishing Websites,” UCI Machine Learning Repository, Dataset 327, 2015.",
-    "sahoo": "D. Sahoo, C. Liu, and S. C. H. Hoi, “Malicious URL detection using machine learning: A survey,” arXiv:1701.07179, 2017.",
-    "sahingoz": "O. K. Sahingoz, E. Buber, O. Demir, and B. Diri, “Machine learning based phishing detection from URLs,” Expert Systems with Applications, vol. 117, pp. 345–357, 2019.",
-    "tang": "L. Tang and Q. H. Mahmoud, “A survey of machine learning-based solutions for phishing website detection,” Machine Learning and Knowledge Extraction, vol. 3, no. 3, pp. 672–694, 2021.",
-    "safi": "A. Safi and S. Singh, “A systematic literature review on phishing website detection techniques,” J. King Saud Univ. Comput. Inf. Sci., vol. 35, no. 2, pp. 590–611, 2023.",
+    "apwg": "Anti-Phishing Working Group, “Phishing activity trends report, 4th quarter 2025,” APWG, Feb. 18, 2026. Accessed: Nov. 17, 2026. [Online]. Available: https://docs.apwg.org/reports/apwg_trends_report_q4_2025.pdf",
+    "interisle": "Interisle Consulting Group, “Phishing landscape 2024: A study of the scope and distribution of phishing,” Jul. 23, 2024. Accessed: Nov. 17, 2026. [Online]. Available: https://interisle.net/PhishingLandscape2024",
+    "prasad": "A. Prasad and S. Chandra, “PhiUSIIL: A diverse security profile empowered phishing URL detection framework based on similarity index and incremental learning,” Comput. Secur., vol. 136, Art. no. 103545, Jan. 2024, doi: 10.1016/j.cose.2023.103545.",
+    "mohammad12": "R. M. Mohammad, F. Thabtah, and L. McCluskey, “An assessment of features related to phishing websites using an automated technique,” in Proc. 7th Int. Conf. Internet Technol. Secured Trans. (ICITST), London, U.K., Dec. 2012, pp. 492–497.",
+    "uci327": "R. M. Mohammad and L. McCluskey, “Phishing Websites,” UCI Machine Learning Repository, Dataset 327, 2012, doi: 10.24432/C51W2X.",
+    "sahoo": "D. Sahoo, C. Liu, and S. C. H. Hoi, “Malicious URL detection using machine learning: A survey,” 2017, arXiv:1701.07179.",
+    "sahingoz": "O. K. Sahingoz, E. Buber, O. Demir, and B. Diri, “Machine learning based phishing detection from URLs,” Expert Syst. Appl., vol. 117, pp. 345–357, Mar. 2019, doi: 10.1016/j.eswa.2018.09.029.",
+    "tang": "L. Tang and Q. H. Mahmoud, “A survey of machine learning-based solutions for phishing website detection,” Mach. Learn. Knowl. Extr., vol. 3, no. 3, pp. 672–694, Aug. 2021, doi: 10.3390/make3030034.",
+    "safi": "A. Safi and S. Singh, “A systematic literature review on phishing website detection techniques,” J. King Saud Univ. Comput. Inf. Sci., vol. 35, no. 2, pp. 590–611, Feb. 2023, doi: 10.1016/j.jksuci.2023.01.004.",
     "access25": "Y. A. Kustiawan and K. I. Ghauth, “Feature engineering for phishing website detection using machine learning: A systematic review,” IEEE Access, vol. 13, pp. 192080–192104, 2025, doi: 10.1109/ACCESS.2025.3630334.",
-    "garera": "S. Garera, N. Provos, M. Chew, and A. D. Rubin, “A framework for detection and measurement of phishing attacks,” in Proc. ACM Workshop on Recurring Malcode (WORM), 2007, pp. 1–8.",
-    "cantina": "Y. Zhang, J. I. Hong, and L. F. Cranor, “CANTINA: A content-based approach to detecting phishing web sites,” in Proc. 16th Int. Conf. World Wide Web (WWW), 2007, pp. 639–648.",
-    "kintis": "P. Kintis et al., “Hiding in plain sight: A longitudinal study of combosquatting abuse,” in Proc. ACM SIGSAC Conf. Computer and Communications Security (CCS), 2017, doi: 10.1145/3133956.3134002.",
-    "agten": "P. Agten, W. Joosen, F. Piessens, and N. Nikiforakis, “Seven months’ worth of mistakes: A longitudinal study of typosquatting abuse,” in Proc. Network and Distributed System Security Symp. (NDSS), 2015.",
-    "lewis": "P. Lewis et al., “Retrieval-augmented generation for knowledge-intensive NLP tasks,” in Advances in Neural Information Processing Systems (NeurIPS), vol. 33, 2020, pp. 9459–9474.",
-    "yao": "S. Yao et al., “ReAct: Synergizing reasoning and acting in language models,” in Proc. Int. Conf. Learning Representations (ICLR), 2023.",
-    "nicklas": "F. Nicklas, N. Ventulett, and J. Conrad, “Enhancing phishing email detection with context-augmented open large language models,” in Proc. Upper-Rhine Artificial Intelligence Symp. (URAI), Offenburg, Germany, 2024.",
-    "li26": "W. Li, S. Manickam, Y.-W. Chong, and S. Karuppayah, “PhishIntentionLLM: Uncovering phishing website intentions through multi-agent retrieval-augmented generation,” arXiv:2507.15419, 2025.",
-    "openphish": "OpenPhish, “OpenPhish community phishing feed,” 2026. [Online]. Available: https://openphish.com/",
-    "urlhaus": "abuse.ch, “URLhaus: Malware URL exchange,” 2026. [Online]. Available: https://urlhaus.abuse.ch/ (read via the malware-filter mirror, https://gitlab.com/malware-filter/urlhaus-filter)",
-    "tranco": "V. Le Pochat, T. Van Goethem, S. Tajalizadehkhoob, M. Korczyński, and W. Joosen, “Tranco: A research-oriented top sites ranking hardened against manipulation,” in Proc. Network and Distributed System Security Symp. (NDSS), 2019.",
-    "phishdb": "Phishing Database Project, “Phishing.Database,” GitHub repository, 2026. [Online]. Available: https://github.com/Phishing-Database/Phishing.Database",
+    "garera": "S. Garera, N. Provos, M. Chew, and A. D. Rubin, “A framework for detection and measurement of phishing attacks,” in Proc. ACM Workshop Recurring Malcode (WORM), Nov. 2007, pp. 1–8, doi: 10.1145/1314389.1314391.",
+    "cantina": "Y. Zhang, J. I. Hong, and L. F. Cranor, “CANTINA: A content-based approach to detecting phishing web sites,” in Proc. 16th Int. Conf. World Wide Web (WWW), May 2007, pp. 639–648, doi: 10.1145/1242572.1242659.",
+    "kintis": "P. Kintis et al., “Hiding in plain sight: A longitudinal study of combosquatting abuse,” in Proc. ACM SIGSAC Conf. Comput. Commun. Secur. (CCS), Oct. 2017, pp. 569–586, doi: 10.1145/3133956.3134002.",
+    "agten": "P. Agten, W. Joosen, F. Piessens, and N. Nikiforakis, “Seven months’ worth of mistakes: A longitudinal study of typosquatting abuse,” in Proc. Netw. Distrib. Syst. Secur. Symp. (NDSS), 2015, doi: 10.14722/ndss.2015.23058.",
+    "lewis": "P. Lewis et al., “Retrieval-augmented generation for knowledge-intensive NLP tasks,” in Proc. Adv. Neural Inf. Process. Syst. (NeurIPS), vol. 33, 2020, pp. 9459–9474.",
+    "yao": "S. Yao et al., “ReAct: Synergizing reasoning and acting in language models,” in Proc. Int. Conf. Learn. Represent. (ICLR), 2023.",
+    "nicklas": "F. Nicklas, N. Ventulett, and J. Conrad, “Enhancing phishing email detection with context-augmented open large language models,” in Proc. Upper-Rhine Artif. Intell. Symp. (URAI), Offenburg, Germany, Nov. 2024, pp. 159–166, doi: 10.60643/urai.v2024p159.",
+    "li26": "W. Li, S. Manickam, Y.-W. Chong, and S. Karuppayah, “PhishIntentionLLM: Uncovering phishing website intentions through multi-agent retrieval-augmented generation,” in Digital Forensics and Cyber Crime (ICDF2C 2025), Lecture Notes of the Institute for Computer Sciences, Social Informatics and Telecommunications Engineering. Cham, Switzerland: Springer, 2026, pp. 88–106, doi: 10.1007/978-3-032-22545-0_6.",
+    "openphish": "OpenPhish, “OpenPhish community phishing feed,” OpenPhish. Accessed: Nov. 4, 2026. [Online]. Available: https://openphish.com/phishing_feeds.html",
+    "urlhaus": "abuse.ch, “URLhaus: Malware URL exchange,” abuse.ch. Accessed: Nov. 8, 2026. [Online]. Available: https://urlhaus.abuse.ch/",
+    "urlhausmirror": "malware-filter, “Online malicious URL blocklist (urlhaus-filter),” GitLab repository. Accessed: Nov. 8, 2026. [Online]. Available: https://gitlab.com/malware-filter/urlhaus-filter",
+    "tranco": "V. Le Pochat, T. Van Goethem, S. Tajalizadehkhoob, M. Korczyński, and W. Joosen, “Tranco: A research-oriented top sites ranking hardened against manipulation,” in Proc. 26th Annu. Netw. Distrib. Syst. Secur. Symp. (NDSS), Feb. 2019, doi: 10.14722/ndss.2019.23386.",
+    "phishdb": "M. Krog, N. Chababy, and Phishing.Database contributors, “Phishing.Database,” GitHub repository, version V.2026-10-02.17. Accessed: Nov. 4, 2026. [Online]. Available: https://github.com/Phishing-Database/Phishing.Database",
 }
 _order: list[str] = []
 
@@ -72,7 +73,7 @@ def cite(text: str) -> str:
             if key not in _order:
                 _order.append(key)
             nums.append(_order.index(key) + 1)
-        return ", ".join(f"[{n}]" for n in nums)
+        return ", ".join(f"[{n}]" for n in sorted(nums))
 
     return re.sub(r"\{([a-z0-9,\s]+)\}", repl, text)
 
@@ -260,14 +261,14 @@ IND = '<w:ind w:start="10pt" w:firstLine="0pt"/>'
 S(h1("Introduction"))
 S(body(
     "Phishing and malware delivery use deceptive URLs to obtain passwords and payment details or to install malicious programs, "
-    "and they remain among the most reported forms of online fraud {apwg,interisle}. Most published detectors treat the problem "
+    "and they remain among the most common forms of online fraud, with millions of attacks observed each year {apwg,interisle}. Most published detectors treat the problem "
     "as binary classification: lexical, host, or page features are extracted and a classifier separates malicious from legitimate "
     "pages {sahoo,sahingoz,tang,safi}. A class label is a useful first signal, but it does not say which evidence supports the "
     "decision, whether that evidence was checked, or what an analyst should do next."
 ))
 S(body(
     "Retrieval-augmented generation (RAG) attaches retrieved context to an answer {lewis}, and agent frameworks let a system "
-    "choose tools step by step {yao}. Recent phishing work uses both, usually with a large language model in the loop "
+    "choose tools step by step {yao}. Recent phishing work uses retrieval and, in one case, multiple agents, usually with a large language model in the loop "
     "{nicklas,li26}. Two problems remain. First, one retrieve-and-answer step follows a fixed path and cannot decide which "
     "evidence is still missing. Second, when a generative model writes the report, nothing guarantees that each sentence "
     "is supported by the retrieved text."
@@ -282,7 +283,7 @@ S(body(
 S(body("The contributions of this paper are as follows."))
 for item in (
     "*A transparent URL detector for phishing and malware.* Twenty-two weighted rules, including five added in this work "
-    "(free hosting and dynamic DNS hosts, machine-generated labels, glued www or com labels, program or archive downloads, and "
+    "(free hosting {interisle} and dynamic DNS hosts, machine-generated labels, glued www or com labels, program or archive downloads, and "
     "per-victim hex folders), one-edit typosquat matching, and mixed-script homograph checks, produce a score and a three-way verdict.",
     "*A score-driven agentic investigation chain.* The score selects which registries and retrievals run; a separate verifier "
     "keeps only sentences that an exhibit covers; and the report publishes only verifier output.",
@@ -322,10 +323,11 @@ S(table(
         [cite("Prasad {prasad}"), "ML", "No", "No", "No"],
         [cite("Sahingoz {sahingoz}"), "ML", "No", "No", "No"],
         [cite("Nicklas {nicklas}"), "LLM", "Yes", "No", "Label"],
-        [cite("Li {li26}"), "LLM", "Yes", "No", "Text"],
+        [cite("Li {li26}"), "LLM (intent)", "Yes", "Partial‡", "Text"],
         ["This work", "Rules", "Yes", "Yes", "Verified"],
     ],
     [62, 44, 44, 44, 46],
+    "‡Aggregates agent outputs but does not check each report sentence against retrieved evidence. Li et al. classify the intent of known phishing pages rather than detect phishing.",
 ))
 
 S(h1("Research Questions and Objectives"))
@@ -371,7 +373,7 @@ S(body(
     "example githubusercontent.com for GitHub) and is not under a brand-owned top-level domain such as .google. The exact brand "
     "name on a country-code suffix or on .com, .net, or .org (hsbc.fr) is read as the brand's own domain; on a newer generic "
     "suffix (interac.tax) it is not, because anyone can register it. A token "
-    "matches when it equals the brand, starts with it (combosquatting {kintis}), or, for names of six or more letters, differs "
+    "matches when it equals the brand, starts with it (a common form of combosquatting {kintis}), or, for names of six or more letters, differs "
     "by one insertion, deletion, substitution, or adjacent swap (typosquatting {agten}). Brands that are also ordinary words, "
     "such as apple and steam, match a longer token only when the extra text is an account word such as id, login, or support, "
     "and short brand names such as DHL or DPD match only a whole token. "
@@ -391,7 +393,7 @@ S(table(
         ["Glued www/com†", "22", "Subdomain label contains www or ends in com"],
         ["Mixed-script IDN", "22", "Punycode label mixes Latin and another script"],
         ["Unusual port", "18", "Port other than 80 or 443"],
-        ["Abused suffix", "16", f"Suffix on a {N_TLDS}-entry abuse list"],
+        ["Abused suffix", "16", f"Suffix on a {N_TLDS}-entry abuse list {{interisle}}"],
         ["File download†", "16", "Path ends in one of 27 program or archive types"],
         ["Machine label†", "14", "Long label with six consonants in a row or mixed digits"],
         ["Lure words", "6 each", "Account words; parcel-scam words in the host; cap 18"],
@@ -448,8 +450,10 @@ S(h2("Datasets"))
 S(body(
     f"PhiUSIIL {{prasad}} provides 235,795 labeled URLs; {n(N_ALL)} could be parsed as http or https URLs. Four real-world lists "
     "add data PhiUSIIL never saw: a snapshot of OpenPhish {openphish}; active links from Phishing.Database {phishdb}; online "
-    "malware URLs from URLhaus {urlhaus}, read from the public malware-filter mirror because the URLhaus bulk download now "
-    "requires an account key; and the top 100,000 domains of the Tranco list {tranco}, read as https homepages, as popular safe "
+    "malware URLs derived from URLhaus {urlhaus}, taken from the malware-filter urlhaus-filter list {urlhausmirror}, which "
+    "republishes URLhaus online entries twice daily without the URL scheme; the mirror lets the evaluation be reproduced without "
+    "a (free) abuse.ch Auth-Key, which URLhaus bulk downloads now require; and the top 100,000 domains of the Tranco list {tranco} "
+    "generated on 7 November 2026 (list ID 94P72, https://tranco-list.eu/list/94P72), read as https homepages, as popular safe "
     "sites. Every URL or domain is assigned to a split by its MD5 hash: three of ten buckets form the development split and the "
     "rest form the held-out test split. OpenPhish is used only for testing. Table III gives the test sizes; the larger lists are "
     "sampled with a fixed seed."
@@ -651,7 +655,8 @@ S(body(
     f"{n(t4['alert']['fp'])} legitimate PhiUSIIL URLs against {n(t3['alert']['fp'])} for v3; most of the new alerts are one-edit "
     "matches of the added brands on unrelated names. They were seen only on the test split and were deliberately left unfixed, so "
     "that the test numbers stay unbiased. Feeds and popularity lists change daily and the lists need "
-    "maintenance. Trained classifiers and language-model baselines from the original proposal were deliberately left out to "
+    "maintenance. Phishing.Database marks a link active when it is still reachable, not when it is re-confirmed as phishing, "
+    "so some of its labels may be stale. Trained classifiers and language-model baselines from the original proposal were deliberately left out to "
     "keep every decision auditable; comparing against them is future work."
 ))
 
@@ -681,7 +686,7 @@ S(h5("References"))
 
 def references_xml() -> str:
     return "".join(
-        para("references", run(REFS[key]), '<w:ind w:start="17.70pt" w:hanging="17.70pt"/>') for key in _order
+        para("references", run(REFS[key]), '<w:ind w:start="17.70pt" w:hanging="17.70pt"/><w:jc w:val="left"/>') for key in _order
     )
 
 

@@ -34,8 +34,9 @@ def main() -> None:
                 "source_url": "https://openphish.com/",
                 "mirror_url": "https://github.com/openphish/public_feed",
                 "citation": "OpenPhish community phishing feed. Non-commercial use. https://openphish.com/terms.html",
-                "note": "Every row is a phishing URL. This is a snapshot saved with the summary, not a live request during a check.",
+                "note": "Every row is a phishing URL. Only the counts are kept: OpenPhish's terms do not allow its URLs to be redistributed or displayed, so no sample addresses are stored.",
                 "host_only": False,
+                "redistribute": False,
             },
         ),
         _score_lines(
@@ -43,9 +44,9 @@ def main() -> None:
             meta={
                 "id": "phishing-links",
                 "name": "Phishing Database, active links",
-                "source_url": "https://github.com/mitchellkrogza/Phishing.Database",
-                "mirror_url": "https://github.com/mitchellkrogza/Phishing.Database",
-                "citation": "Mitchell Krog. Phishing Database, active phishing links. https://github.com/mitchellkrogza/Phishing.Database",
+                "source_url": "https://github.com/Phishing-Database/Phishing.Database",
+                "mirror_url": "https://github.com/Phishing-Database/Phishing.Database",
+                "citation": "Mitchell Krog, Nissar Chababy and contributors. Phishing Database, active phishing links. https://github.com/Phishing-Database/Phishing.Database",
                 "note": "Every row is an active phishing link. Addresses that are not http or https, including ftp, are skipped.",
                 "host_only": False,
             },
@@ -55,9 +56,9 @@ def main() -> None:
             meta={
                 "id": "phishing-ips",
                 "name": "Phishing Database, active IP hosts",
-                "source_url": "https://github.com/mitchellkrogza/Phishing.Database",
-                "mirror_url": "https://github.com/mitchellkrogza/Phishing.Database",
-                "citation": "Mitchell Krog. Phishing Database, active phishing IP addresses. https://github.com/mitchellkrogza/Phishing.Database",
+                "source_url": "https://github.com/Phishing-Database/Phishing.Database",
+                "mirror_url": "https://github.com/Phishing-Database/Phishing.Database",
+                "citation": "Mitchell Krog, Nissar Chababy and contributors. Phishing Database, active phishing IP addresses. https://github.com/Phishing-Database/Phishing.Database",
                 "note": "The file lists hosts. Each host is read here as an http URL so the same rules can score it. The page is not opened.",
                 "host_only": True,
             },
@@ -139,7 +140,7 @@ def _score_lines(urls, meta: dict[str, object]) -> dict[str, object]:
             "suspicious_verdict": _pct(verdicts["suspicious"], n),
             "clean_verdict": _pct(verdicts["clean"], n),
         },
-        "samples": pool,
+        "samples": pool if meta.get("redistribute", True) else [],
     }
 
 
