@@ -155,7 +155,7 @@ def run_mode(detection: dict[str, object], mode: str) -> dict[str, object]:
                     "citations": [],
                 }
             )
-        label = "phishing" if int(detection["score"]) >= 50 else "legitimate"
+        label = "phishing" if int(detection["score"]) >= detector.PHISHING_AT else "legitimate"
         claims.append(
             {
                 "rule_id": "class_label",

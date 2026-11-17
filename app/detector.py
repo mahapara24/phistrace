@@ -3,11 +3,23 @@
 from __future__ import annotations
 
 import ipaddress
+import unicodedata
 import re
 from urllib.parse import unquote, urlparse
 
 from app.corpus import (
+    BRAND_TLDS,
     BRANDS,
+    EXACT_ONLY,
+    EXECUTABLE_EXTENSIONS,
+    PAYLOAD_EXTENSIONS,
+    RAW_FILE_HOSTS,
+    FREE_HOSTS,
+    HOST_LURE_WORDS,
+    NOT_BRANDS,
+    PATH_HOSTS,
+    WORD_BRAND_TAILS,
+    WORD_BRANDS,
     LURE_WORDS,
     MULTI_SUFFIXES,
     SHORTENERS,
@@ -32,6 +44,11 @@ W_DIGIT = 8
 W_SLASH = 10
 W_LURE = 6
 W_QP = 28
+W_FREE = 22
+W_RANDOM = 14
+W_EMBED = 22
+W_DOWNLOAD = 16
+W_HASH = 8
 LURE_CAP = 18
 LURE_CAP_OFFICIAL = 6
 
@@ -44,7 +61,13 @@ DIGIT_RATIO = 0.30
 DIGIT_MIN = 8
 PREFIX_EXTRA = 12
 SUFFIX_EXTRA = 2
+TYPO_MIN = 6
+RANDOM_MIN_LEN = 8
+CONSONANT_RUN = 6
+MIXED_DIGITS = 4
+HASH_LEN = 24
 
+PHISHING_AT = 40
 LEVEL_MODERATE = 21
 PATH_DEEP = 50
 LEVEL_CRITICAL = 75
@@ -54,6 +77,13 @@ _LEET = str.maketrans({"0": "o", "1": "l", "3": "e", "4": "a", "5": "s", "7": "t
 _HEX = re.compile(r"%[0-9a-fA-F]{2}")
 _SPLIT = re.compile(r"[^a-z0-9]+")
 _QUOTED_PRINTABLE = re.compile(r"=3[Dd]")
+_HASH_SEGMENT = re.compile(r"/([0-9a-fA-F]{32})(?=/|$)")
+_CONSONANTS = re.compile(r"[bcdfghjklmnpqrstvwxz]+")
+_VOWELS = set("aeiou")
+# Ordinary words one edit away from a brand name.
+# Generic suffixes where an exact brand name is still read as the brand: old open ones and restricted ones.
+BRAND_SAFE_SUFFIXES = {"com", "net", "org", "gov", "edu", "mil", "int", "cat"}
+TYPO_WORDS = {"finance", "bitcoin", "outlook", "dropboy", "applet", "steams", "visual", "chased", "chaser"}
 
 
 def catalog() -> list[dict[str, str]]:
@@ -62,12 +92,12 @@ def catalog() -> list[dict[str, str]]:
         {"id": "userinfo_at", "label": "User information", "weight": str(W_USERINFO), "detail": "Text before @ is not the host. The connection target is the host after @."},
         {"id": "brand_mismatch", "label": "Brand mismatch", "weight": str(W_BRAND), "detail": "A brand-like token is present, and the registrable domain is not on that brand's list."},
         {"id": "suspicious_tld", "label": "Higher-abuse suffix", "weight": str(W_TLD), "detail": "The public suffix is on this workbench's higher-abuse list."},
-        {"id": "punycode", "label": "Punycode label", "weight": str(W_PUNY), "detail": "A host label begins with xn--."},
-        {"id": "shortener", "label": "Shortener", "weight": str(W_SHORT), "detail": "The registrable host is a known shortening service. Redirects are not followed."},
+        {"id": "punycode", "label": "Mixed-script Punycode", "weight": str(W_PUNY), "detail": "A Punycode (xn--) label decodes to Latin letters mixed with letters from another script, the homograph form. A name wholly in one script does not fire."},
+        {"id": "shortener", "label": "Shortener", "weight": str(W_SHORT), "detail": "The registrable host is a known shortening service and a short code follows it. Redirects are not followed."},
         {"id": "no_https", "label": "Explicit HTTP", "weight": str(W_HTTP), "detail": "The typed URL uses http. A missing scheme does not add this weight."},
         {"id": "long_url", "label": "Long URL", "weight": str(W_LONG), "detail": f"The URL is at least {LONG_AT} characters."},
         {"id": "very_long_url", "label": "Very long URL", "weight": str(W_VERY_LONG), "detail": f"The URL is at least {VERY_LONG_AT} characters. This adds to the long-URL weight."},
-        {"id": "deep_subdomains", "label": "Deep subdomains", "weight": str(W_SUB), "detail": f"At least {SUB_AT} labels sit left of the registrable domain."},
+        {"id": "deep_subdomains", "label": "Deep subdomains", "weight": str(W_SUB), "detail": f"At least {SUB_AT} labels, not counting a leading www, sit left of the registrable domain."},
         {"id": "many_hyphens", "label": "Many hyphens", "weight": str(W_HYPHEN), "detail": f"The host contains at least {HYPHEN_AT} hyphens."},
         {"id": "unusual_port", "label": "Unusual port", "weight": str(W_PORT), "detail": "The port is present and is not 80 or 443."},
         {"id": "heavy_encoding", "label": "Heavy encoding", "weight": str(W_ENCODE), "detail": f"The URL contains at least {ENCODE_AT} percent-encodings."},
@@ -85,6 +115,11 @@ def catalog() -> list[dict[str, str]]:
             "weight": str(W_QP),
             "detail": "The URL still contains =3D, the way email encodes an equals sign. cmd=3D_login-run is the raw form of cmd=_login-run. Percent-encoding (%3D) does not count.",
         },
+        {"id": "free_hosting", "label": "Free hosting platform", "weight": str(W_FREE), "detail": "The page sits on a free hosting, site-builder, cloud-storage, or IPFS platform, as a subdomain or in the path, so nobody registered a domain for this page."},
+        {"id": "random_label", "label": "Machine-generated label", "weight": str(W_RANDOM), "detail": f"A host label of at least {RANDOM_MIN_LEN} characters has {CONSONANT_RUN} or more consonants in a row, at least {MIXED_DIGITS} digits mixed with letters, or is a {HASH_LEN}+ character hash."},
+        {"id": "embedded_www", "label": "Glued www or com", "weight": str(W_EMBED), "detail": "A label other than www contains www, or a subdomain label ends in a glued com, imitating a real address."},
+        {"id": "hash_path", "label": "Hex-code folder", "weight": str(W_HASH), "detail": "A path segment is exactly 32 hexadecimal characters, the per-victim folder name many phishing kits create."},
+        {"id": "file_download", "label": "Program or archive download", "weight": str(W_DOWNLOAD), "detail": "The path ends in a program or archive type such as exe, msi, bat, ps1, apk, jar, zip, rar, or iso."},
     ]
 
 
@@ -117,7 +152,7 @@ def analyze(raw: str) -> dict[str, object]:
     seen_official = set()
     for token in brand_tokens:
         key = token["brand"]
-        listed = registrable in BRANDS[key]
+        listed = registrable in BRANDS[key] or _brand_cctld(registrable, key, tld) or tld in BRAND_TLDS
         record = {
             "brand": key,
             "name": brand_name(key),
@@ -140,6 +175,12 @@ def analyze(raw: str) -> dict[str, object]:
             seen_mismatch.add(item["brand"])
 
     lure_hits = _lure_hits(host, decoded_path, decoded_query)
+    free_host = free_platform(host, decoded_path)
+    homograph = _homograph_labels(host)
+    payload = _payload_type(decoded_path)
+    raw_executable = bool(payload) and payload in EXECUTABLE_EXTENSIONS and host in RAW_FILE_HOSTS
+    random_labels = _random_labels(host, registrable, tld, free_host)
+    glued = _glued_labels(host, registrable)
     official_host = bool(officials) and not mismatches
     indicators: list[dict[str, object]] = []
 
@@ -164,9 +205,9 @@ def analyze(raw: str) -> dict[str, object]:
         )
     if tld in SUSPICIOUS_TLDS:
         add("suspicious_tld", W_TLD, f"The public suffix .{tld} is on this workbench's higher-abuse list.")
-    if any(label.startswith("xn--") for label in host.split(".")):
-        add("punycode", W_PUNY, f"The host {host} contains a Punycode label (xn--).")
-    if (not ip_host) and (registrable in SHORTENERS or host in SHORTENERS):
+    if homograph:
+        add("punycode", W_PUNY, f"The Punycode label {homograph[0]} decodes to Latin letters mixed with another script, the form used to imitate a Latin name.")
+    if (not ip_host) and (registrable in SHORTENERS or host in SHORTENERS) and (parts.path or "/").strip("/"):
         add("shortener", W_SHORT, f"{registrable} is a shortening host. The destination is not in the URL, and this workbench does not follow it.")
     if parts.scheme == "http" and not assumed:
         add("no_https", W_HTTP, "The URL explicitly uses http.")
@@ -178,7 +219,7 @@ def analyze(raw: str) -> dict[str, object]:
     sub_count = subdomain_count(host)
     if sub_count >= SUB_AT:
         add("deep_subdomains", W_SUB, f"The host has {sub_count} labels to the left of {registrable}.")
-    hyphens = host.count("-")
+    hyphens = display.count("-")  # count on the decoded name, so xn-- does not add hyphens
     if hyphens >= HYPHEN_AT:
         add("many_hyphens", W_HYPHEN, f"The host contains {hyphens} hyphens.")
     if port not in (None, 80, 443):
@@ -209,6 +250,19 @@ def analyze(raw: str) -> dict[str, object]:
             + listed,
         )
 
+    if free_host:
+        add("free_hosting", W_FREE, f"The host sits on {free_host}, a free hosting or site-builder platform. The page owner did not register a domain.")
+    if random_labels:
+        add("random_label", W_RANDOM, f"The host label “{random_labels[0]}” looks machine-generated.")
+    hashed = _HASH_SEGMENT.search(parts.path or "")
+    if hashed:
+        add("hash_path", W_HASH, f"The path contains the 32-character hex folder {hashed.group(1)[:12]}…, a pattern phishing kits create per victim.")
+    if payload:
+        where = f" It is served raw from {host}, a user file host." if raw_executable else ""
+        add("file_download", W_DOWNLOAD, f"The path ends in .{payload}, so the link downloads a file instead of opening a page.{where}")
+    if glued:
+        add("embedded_www", W_EMBED, f"The label “{glued[0]}” glues www or com into one label, imitating a real address.")
+
     raw_score = sum(int(item["weight"]) for item in indicators)
     score = min(SCORE_CAP, raw_score)
     level = _level(score)
@@ -238,9 +292,14 @@ def analyze(raw: str) -> dict[str, object]:
         "lure_count": len(lure_hits),
         "quoted_printable": int(bool(_QUOTED_PRINTABLE.search(f"{original}\n{decoded_path}\n{decoded_query}"))),
         "brand_mismatch": int(bool(mismatches)),
-        "punycode": int(any(label.startswith("xn--") for label in host.split("."))),
-        "shortener": int((not ip_host) and (registrable in SHORTENERS or host in SHORTENERS)),
+        "punycode": int(bool(homograph)),
+        "shortener": int((not ip_host) and (registrable in SHORTENERS or host in SHORTENERS) and bool((parts.path or "/").strip("/"))),
         "unusual_port": int(port not in (None, 80, 443)),
+        "free_hosting": int(bool(free_host)),
+        "random_label": int(bool(random_labels)),
+        "embedded_www": int(bool(glued)),
+        "file_download": int(bool(payload)),
+        "raw_executable": int(raw_executable),
     }
 
     result = {
@@ -279,6 +338,15 @@ def analyze(raw: str) -> dict[str, object]:
     return result
 
 
+MEDIUM_RULES = {
+    "raw_ip", "userinfo_at", "brand_mismatch", "punycode", "shortener", "unusual_port",
+    "quoted_printable", "free_hosting", "embedded_www", "lure_terms", "file_download",
+}
+DOWNLOAD_CORROBORATION = {
+    "raw_ip", "unusual_port", "free_hosting", "suspicious_tld", "random_label", "digit_heavy_host", "shortener", "userinfo_at",
+}
+
+
 def decide(detection: dict[str, object]) -> dict[str, object]:
     """Turn fired indicators into a phishing / suspicious / not-phishing call."""
     ids = {str(item["id"]) for item in detection["indicators"]}
@@ -292,14 +360,23 @@ def decide(detection: dict[str, object]) -> dict[str, object]:
         or ("suspicious_tld" in ids and "lure_terms" in ids)
         or ("shortener" in ids and "lure_terms" in ids)
         or ("quoted_printable" in ids and "lure_terms" in ids)
-        or int(detection["score"]) >= 50
+        or ("free_hosting" in ids and bool(ids & {"lure_terms", "random_label", "embedded_www", "digit_heavy_host"}))
+        or ("random_label" in ids and bool(ids & {"suspicious_tld", "lure_terms"}))
+        or ("embedded_www" in ids and len(ids) >= 2)
+        or ("file_download" in ids and bool(ids & DOWNLOAD_CORROBORATION))
+        or bool(detection["features"].get("raw_executable"))
+        or int(detection["score"]) >= PHISHING_AT
     )
     weak_only = ids <= {"no_https"} or (official and ids <= {"lure_terms", "no_https"})
-    suspicious = (not phishing) and bool(ids) and not weak_only
+    # One weak shape cue (a cheap suffix, a long URL, many digits) is common on ordinary sites.
+    # Suspicious needs a medium cue or weak cues that add up to the moderate band.
+    weak_cues = ids - MEDIUM_RULES - {"very_long_url"}  # very long is the same cue as long
+    enough = bool(ids & MEDIUM_RULES) or int(detection["score"]) >= LEVEL_MODERATE or len(weak_cues) >= 2
+    suspicious = (not phishing) and bool(ids) and not weak_only and enough
     if phishing:
-        code, label = "phishing", "Phishing / scam"
-        headline = "This URL is identified as phishing or a scam from the address itself."
-        why = reasons or ["The combined rule score is 50 or higher."]
+        code, label = "phishing", "Phishing / malicious"
+        headline = "This URL is identified as phishing or malicious from the address itself."
+        why = reasons or [f"The combined rule score is {PHISHING_AT} or higher."]
     elif suspicious:
         code, label = "suspicious", "Suspicious"
         headline = "This URL has phishing cues. They are not strong enough, on their own, to call it phishing."
@@ -388,23 +465,33 @@ def is_ip(host: str) -> bool:
     return True
 
 
+_SECOND_LEVEL = {"com", "co", "org", "net", "gov", "edu", "ac", "or", "ne", "go"}
+
+
+def _multi_suffix(labels: list[str]) -> bool:
+    """co.uk-style suffix: listed, or a generic second level under a two-letter country code."""
+    if len(labels) < 3:
+        return False
+    last_two = ".".join(labels[-2:])
+    return last_two in MULTI_SUFFIXES or (len(labels[-1]) == 2 and labels[-2] in _SECOND_LEVEL)
+
+
 def registrable_domain(host: str) -> str:
     if is_ip(host):
         return host
     labels = [label for label in host.split(".") if label]
     if len(labels) <= 2:
         return ".".join(labels)
-    last_two = ".".join(labels[-2:])
-    if last_two in MULTI_SUFFIXES and len(labels) >= 3:
+    if _multi_suffix(labels):
         return ".".join(labels[-3:])
-    return last_two
+    return ".".join(labels[-2:])
 
 
 def public_suffix(host: str) -> str:
     if is_ip(host):
         return ""
     labels = [label for label in host.split(".") if label]
-    if len(labels) >= 2 and ".".join(labels[-2:]) in MULTI_SUFFIXES:
+    if _multi_suffix(labels):
         return ".".join(labels[-2:])
     return labels[-1] if labels else ""
 
@@ -414,6 +501,8 @@ def subdomain_count(host: str) -> int:
         return 0
     labels = [label for label in host.split(".") if label]
     reg_labels = [label for label in registrable_domain(host).split(".") if label]
+    if labels and labels[0] == "www":
+        labels = labels[1:]  # www is a convention, not a hiding place
     return max(0, len(labels) - len(reg_labels))
 
 
@@ -487,6 +576,133 @@ def _brand_domains_in_path(path: str, registrable: str) -> list[dict[str, str]]:
     return found
 
 
+def _brand_cctld(registrable: str, brand: str, tld: str) -> bool:
+    """The exact brand name on a country suffix or .com/.net/.org, such as hsbc.fr or google.org.
+
+    New generic suffixes (.tax, .company, .moscow) are excluded: anyone can register
+    interac.tax, and phishing kits do.
+    """
+    label = registrable.split(".")[0] if registrable else ""
+    country = len(tld.rsplit(".", 1)[-1]) == 2  # .fr, .com.do, .co.zm
+    return label == brand and tld not in SUSPICIOUS_TLDS and (country or tld in BRAND_SAFE_SUFFIXES)
+
+
+def _homograph_labels(host: str) -> list[str]:
+    """Punycode labels that decode to Latin letters mixed with letters of another script."""
+    found = []
+    for label in host.split("."):
+        if not label.startswith("xn--"):
+            continue
+        try:
+            decoded = label.encode("ascii").decode("idna")
+        except (UnicodeError, UnicodeDecodeError):
+            found.append(label)  # malformed Punycode is itself unusual
+            continue
+        latin = any("a" <= c <= "z" for c in decoded.lower())
+        other = any(c.isalpha() and ord(c) > 127 and "LATIN" not in unicodedata.name(c, "") for c in decoded)
+        if latin and other:
+            found.append(label)
+    return found
+
+
+def _payload_type(path: str) -> str:
+    last = path.rstrip("/").rsplit("/", 1)[-1].lower()
+    if "." not in last:
+        return ""
+    ext = last.rsplit(".", 1)[-1]
+    return ext if ext in PAYLOAD_EXTENSIONS else ""
+
+
+_S3_HOST = re.compile(r"(^|\.)s3[.-]([a-z0-9-]+\.)?amazonaws\.com$")
+_BLOGSPOT_CC = re.compile(r"\.blogspot\.[a-z]{2,3}(\.[a-z]{2})?$")
+_OCI_STORAGE = re.compile(r"^objectstorage\.[a-z0-9-]+\.oraclecloud\.com$")
+
+
+def free_platform(host: str, path: str = "") -> str:
+    """Return the free-hosting platform the host sits under, or an empty string."""
+    for platform in FREE_HOSTS:
+        if host.endswith("." + platform):
+            return platform
+    if _BLOGSPOT_CC.search(host) and not host.endswith(".blogspot.com"):
+        return "blogspot." + host.split(".blogspot.", 1)[1]
+    has_page = len(path.strip("/")) > 0
+    if _S3_HOST.search(host):
+        # bucket.s3.amazonaws.com, or s3.region.amazonaws.com/bucket/page
+        if not host.startswith("s3") or path.strip("/").count("/") >= 1:
+            return "s3.amazonaws.com"
+    if _OCI_STORAGE.match(host) and has_page:
+        return "objectstorage.oraclecloud.com"
+    prefixes = PATH_HOSTS.get(host)
+    if prefixes and has_page and any(path.lower().startswith(prefix) for prefix in prefixes):
+        return host
+    return ""
+
+
+def _random_labels(host: str, registrable: str, tld: str, platform: str) -> list[str]:
+    if is_ip(host):
+        return []
+    suffix_labels = set((platform or tld).split(".")) if (platform or tld) else set()
+    found = []
+    for label in host.split("."):
+        if not label or label in suffix_labels or label == "www" or label.startswith("xn--"):
+            continue
+        for piece in label.split("-"):
+            if looks_random(piece):
+                found.append(piece)
+    return found
+
+
+def looks_random(piece: str) -> bool:
+    piece = piece.lower()
+    if len(piece) < RANDOM_MIN_LEN:
+        return False
+    if len(piece) >= HASH_LEN and piece.isalnum() and any(c.isdigit() for c in piece):
+        return True
+    letters = sum(c.isalpha() for c in piece)
+    digits = sum(c.isdigit() for c in piece)
+    if digits >= MIXED_DIGITS and letters >= 3 and not piece[:letters].isalpha() and _digit_runs(piece) >= 2:
+        return True
+    runs = [len(run) for run in _CONSONANTS.findall(piece)]
+    if runs and max(runs) >= CONSONANT_RUN:
+        return True
+    alpha = [c for c in piece if c.isalpha()]
+    return len(alpha) >= 10 and sum(c in _VOWELS for c in alpha) / len(alpha) < 0.15
+
+
+def _digit_runs(piece: str) -> int:
+    return len(re.findall(r"[0-9]+", piece))
+
+
+def _glued_labels(host: str, registrable: str) -> list[str]:
+    labels = [label for label in host.split(".") if label]
+    reg_count = len([label for label in registrable.split(".") if label])
+    sub = labels[: max(0, len(labels) - reg_count)]
+    found = []
+    for label in sub:
+        bare = label.replace("-", "")
+        if label != "www" and "www" in label:
+            found.append(label)
+        elif len(bare) >= 10 and bare.endswith("com"):
+            found.append(label)
+    return found
+
+
+def _edit_one(a: str, b: str) -> bool:
+    """True when a and b differ by one insert, delete, substitution, or adjacent swap."""
+    if a == b or abs(len(a) - len(b)) > 1:
+        return False
+    if len(a) == len(b):
+        diff = [i for i in range(len(a)) if a[i] != b[i]]
+        if len(diff) == 1:
+            return True
+        return len(diff) == 2 and diff[1] == diff[0] + 1 and a[diff[0]] == b[diff[1]] and a[diff[1]] == b[diff[0]]
+    short, long_ = (a, b) if len(a) < len(b) else (b, a)
+    for i in range(len(long_)):
+        if long_[:i] + long_[i + 1 :] == short:
+            return True
+    return False
+
+
 def mention(piece: str, brand: str) -> bool:
     normalized = piece.lower().translate(_LEET)
     target = brand.lower().translate(_LEET)
@@ -494,7 +710,16 @@ def mention(piece: str, brand: str) -> bool:
         return False
     if normalized == target:
         return True
+    if normalized in NOT_BRANDS:
+        return False
+    if brand in EXACT_ONLY:
+        return False
+    if len(target) >= TYPO_MIN and normalized not in TYPO_WORDS and _edit_one(normalized, target):
+        return True
     extra = len(normalized) - len(target)
+    if brand in WORD_BRANDS:
+        rest = normalized[len(target):] if normalized.startswith(target) else ""
+        return bool(rest) and any(rest.startswith(tail) for tail in WORD_BRAND_TAILS)
     if normalized.startswith(target) and 0 < extra <= PREFIX_EXTRA:
         return True
     if normalized.endswith(target) and 0 < extra <= SUFFIX_EXTRA:
@@ -506,6 +731,8 @@ def _lure_hits(host: str, path: str, query: str) -> list[str]:
     blob = f"{host} {path} {query}".lower()
     tokens = set(_SPLIT.split(blob))
     hits = [word for word in LURE_WORDS if word in tokens or ("-" in word and word in blob)]
+    host_tokens = set(_SPLIT.split(host.lower()))
+    hits.extend(word for word in HOST_LURE_WORDS if word in host_tokens)
     return hits
 
 

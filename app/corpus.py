@@ -13,6 +13,11 @@ BRANDS: dict[str, list[str]] = {
     "microsoft": [
         "microsoft.com",
         "microsoftonline.com",
+        "microsoftonline-p.com",
+        "s-microsoft.com",
+        "microsoft365.com",
+        "microsoftapp.net",
+        "microsoftstore.com",
         "live.com",
         "office.com",
         "office365.com",
@@ -32,23 +37,96 @@ BRANDS: dict[str, list[str]] = {
         "googleapis.com",
         "gstatic.com",
         "googleusercontent.com",
+        "googletagmanager.com",
+        "googletagservices.com",
+        "googlesyndication.com",
+        "googleadservices.com",
+        "google-analytics.com",
+        "googlevideo.com",
+        "googleblog.com",
+        "googledomains.com",
+        "googlemail.com",
     ],
-    "apple": ["apple.com", "apple.co.uk", "icloud.com"],
-    "amazon": ["amazon.com", "amazon.co.uk", "amazon.in", "amazon.ca", "amazon.de", "amazonaws.com"],
-    "facebook": ["facebook.com", "fb.com"],
+    "apple": ["apple.com", "apple.co.uk", "icloud.com", "apple-cloudkit.com", "apple-dns.net", "apple-dns.cn"],
+    "amazon": ["amazon.com", "amazon.co.uk", "amazon.in", "amazon.ca", "amazon.de", "amazonaws.com", "amazonvideo.com", "amazontrust.com", "amazon-adsystem.com", "ssl-images-amazon.com", "media-amazon.com", "amazonsilk.com"],
+    "facebook": ["facebook.com", "fb.com", "facebook.net"],
     "instagram": ["instagram.com"],
-    "netflix": ["netflix.com"],
+    "netflix": ["netflix.com", "netflix.net"],
     "linkedin": ["linkedin.com"],
-    "dropbox": ["dropbox.com"],
-    "adobe": ["adobe.com"],
+    "dropbox": ["dropbox.com", "dropboxusercontent.com", "dropboxstatic.com"],
+    "adobe": ["adobe.com", "adobelogin.com", "adobe.io"],
     "dhl": ["dhl.com"],
     "fedex": ["fedex.com"],
     "irs": ["irs.gov"],
     "chase": ["chase.com"],
     "wellsfargo": ["wellsfargo.com"],
     "bankofamerica": ["bankofamerica.com"],
-    "whatsapp": ["whatsapp.com"],
-    "github": ["github.com"],
+    "whatsapp": ["whatsapp.com", "whatsapp.net"],
+    "github": ["github.com", "githubusercontent.com", "github.io", "githubassets.com", "github.dev", "github.blog"],
+    "yahoo": ["yahoo.com", "yahoo.co.jp", "ymail.com", "yahoo.net", "yahoodns.net", "yahooapis.com"],
+    "aol": ["aol.com"],
+    "office365": ["office365.com", "office.com", "microsoft.com"],
+    "onedrive": ["onedrive.com", "live.com", "microsoft.com"],
+    "sharepoint": ["sharepoint.com", "sharepointonline.com", "microsoft.com"],
+    "outlook": ["outlook.com", "live.com", "office.com"],
+    "docusign": ["docusign.com", "docusign.net"],
+    "coinbase": ["coinbase.com"],
+    "binance": ["binance.com"],
+    "metamask": ["metamask.io"],
+    "steam": ["steampowered.com", "steamcommunity.com"],
+    "roblox": ["roblox.com"],
+    "ebay": ["ebay.com", "ebay.co.uk", "ebay.de"],
+    "walmart": ["walmart.com"],
+    "spotify": ["spotify.com"],
+    "telegram": ["telegram.org", "t.me", "telegra.ph"],
+    "twitter": ["twitter.com", "x.com", "ads-twitter.com", "twimg.com"],
+    "usps": ["usps.com"],
+    "verizon": ["verizon.com"],
+    "xfinity": ["xfinity.com", "comcast.net"],
+    "rakuten": ["rakuten.co.jp", "rakuten.com"],
+    "hsbc": ["hsbc.com", "hsbc.co.uk"],
+    "santander": ["santander.com", "santander.co.uk"],
+    "citibank": ["citi.com", "citibank.com"],
+    "americanexpress": ["americanexpress.com"],
+    "mastercard": ["mastercard.com"],
+    # v4: brands added from the development split. Each was kept only when it caught
+    # missed phishing there and raised at most one or two false alarms on popular domains.
+    "icloud": ["icloud.com", "apple.com", "icloud-content.com", "icloud-content.com.cn"],
+    "interac": ["interac.ca"],
+    "smbc": ["smbc.co.jp", "smbc-card.com", "smbc.com", "smbcgroup.com", "smbcnikko.co.jp"],
+    "garena": ["garena.com", "garena.sg", "garena.tw", "garena.vn"],
+    "discord": ["discord.com", "discord.gg", "discordapp.com", "discordapp.net", "discord.media", "discordstatus.com"],
+    "hypesquad": ["discord.com"],
+    "tiktok": ["tiktok.com", "tiktokv.com", "tiktokv.us", "tiktokv.eu", "tiktokcdn.com", "tiktokcdn-us.com", "tiktokcdn-eu.com", "tiktokw.us", "tiktokw.eu", "tiktok-minis.us", "tiktok-row.org", "tiktokapis.com"],
+    "pancakeswap": ["pancakeswap.finance"],
+    "uniswap": ["uniswap.org"],
+    "opensea": ["opensea.io"],
+    "trustwallet": ["trustwallet.com"],
+    "trezor": ["trezor.io"],
+    "kucoin": ["kucoin.com"],
+    "runescape": ["runescape.com", "jagex.com"],
+    "pochta": ["pochta.ru"],
+    "royalmail": ["royalmail.com", "royalmail.co.uk"],
+    "auspost": ["auspost.com.au"],
+    "canadapost": ["canadapost.ca", "canadapost-postescanada.ca"],
+    "swisspost": ["post.ch", "swisspost.ch"],
+    "correos": ["correos.es", "correosprepago.es"],
+    "dpd": ["dpd.com", "dpd.co.uk", "dpd.de", "dpd.fr"],
+    "commbank": ["commbank.com.au"],
+    "natwest": ["natwest.com"],
+    "barclays": ["barclays.co.uk", "barclays.com"],
+    "usaa": ["usaa.com"],
+    "mufg": ["mufg.jp", "mufgamericas.com"],
+    "mizuho": ["mizuhobank.co.jp", "mizuho-fg.co.jp"],
+    "intesa": ["intesasanpaolo.com"],
+    "creditagricole": ["credit-agricole.fr", "credit-agricole.com", "credit-agricole.it", "credit-agricole.pl", "credit-agricole.ua"],
+    "bancolombia": ["bancolombia.com"],
+    "mercadolibre": ["mercadolibre.com", "mercadolibre.com.ar", "mercadolibre.com.mx", "mercadolivre.com.br"],
+    "mercadopago": ["mercadopago.com", "mercadopago.com.br", "mercadopago.com.ar"],
+    "naver": ["naver.com", "naver.net"],
+    "airbnb": ["airbnb.com", "airbnb.co.uk"],
+    "wetransfer": ["wetransfer.com", "we.tl"],
+    "cashapp": ["cash.app", "squareup.com"],
 }
 
 BRAND_DISPLAY = {
@@ -59,6 +137,119 @@ BRAND_DISPLAY = {
     "whatsapp": "WhatsApp",
     "wellsfargo": "Wells Fargo",
     "bankofamerica": "Bank of America",
+    "aol": "AOL",
+    "office365": "Office 365",
+    "onedrive": "OneDrive",
+    "sharepoint": "SharePoint",
+    "docusign": "DocuSign",
+    "metamask": "MetaMask",
+    "ebay": "eBay",
+    "usps": "USPS",
+    "hsbc": "HSBC",
+    "americanexpress": "American Express",
+    "icloud": "iCloud",
+    "smbc": "SMBC",
+    "hypesquad": "Discord HypeSquad",
+    "tiktok": "TikTok",
+    "pancakeswap": "PancakeSwap",
+    "opensea": "OpenSea",
+    "trustwallet": "Trust Wallet",
+    "kucoin": "KuCoin",
+    "runescape": "RuneScape",
+    "pochta": "Russian Post",
+    "royalmail": "Royal Mail",
+    "auspost": "Australia Post",
+    "canadapost": "Canada Post",
+    "swisspost": "Swiss Post",
+    "dpd": "DPD",
+    "commbank": "CommBank",
+    "natwest": "NatWest",
+    "usaa": "USAA",
+    "mufg": "MUFG",
+    "intesa": "Intesa Sanpaolo",
+    "creditagricole": "Crédit Agricole",
+    "mercadolibre": "Mercado Libre",
+    "mercadopago": "Mercado Pago",
+    "wetransfer": "WeTransfer",
+    "cashapp": "Cash App",
+}
+
+# Brand-owned top-level domains (dns.google, about.netflix). A host there is the brand's own.
+BRAND_TLDS = {"google", "youtube", "gmail", "apple", "amazon", "microsoft", "yahoo", "netflix", "linkedin", "xbox", "aws"}
+
+# File types a browser downloads and may run or unpack. URLhaus lists mostly such links.
+PAYLOAD_EXTENSIONS = {
+    "exe", "msi", "bat", "cmd", "scr", "ps1", "vbs", "vbe", "hta", "jar", "apk", "dll", "bin", "sh", "elf",
+    "lnk", "iso", "img", "zip", "rar", "7z", "cab", "dmg", "pkg", "xll", "docm", "xlsm",
+}
+EXECUTABLE_EXTENSIONS = {"exe", "msi", "bat", "cmd", "scr", "ps1", "vbs", "vbe", "hta", "jar", "apk", "dll", "bin", "sh", "elf", "lnk"}
+
+# Hosts that serve raw files from user accounts. A program served raw from one of these skips
+# the release pages where software is normally published.
+RAW_FILE_HOSTS = {
+    "raw.githubusercontent.com", "gist.githubusercontent.com", "cdn.discordapp.com", "media.discordapp.net",
+    "transfer.sh", "files.catbox.moe", "pixeldrain.com", "bitbucket.org", "gitlab.com",
+}
+
+# Brands this short are matched only as a whole piece, never as a prefix or a typo.
+EXACT_ONLY = {"aol", "dhl", "irs", "usps", "hsbc", "ebay", "dpd", "usaa", "smbc", "mufg", "icloud", "garena", "tiktok", "interac"}
+
+# Ordinary words that a prefix or one-edit match would otherwise read as a brand.
+NOT_BRANDS = {"interactive", "interaction", "interactions", "opensearch", "arena", "barclayscenter", "naverland"}
+
+# Brands that are also ordinary words. A longer piece counts only when the extra
+# text is an account or service word, as in appleid or steamcommunitysupport.
+WORD_BRANDS = {"apple", "steam", "chase", "outlook", "spotify"}
+WORD_BRAND_TAILS = (
+    "id", "support", "store", "care", "login", "secure", "account", "verify", "pay", "help",
+    "icloud", "online", "community", "service", "services", "billing", "wallet", "bank", "signin",
+    "update", "gift", "card", "mail",
+)
+
+# Hosted-site and free-hosting platforms. A site on one of these needs no domain
+# registration, so the registrable domain says nothing about who runs the page.
+# Listed because phishing kits are often deployed there (APWG and Interisle reports).
+FREE_HOSTS = {
+    "000webhostapp.com", "web.app", "firebaseapp.com", "appspot.com", "workers.dev", "pages.dev",
+    "r2.dev", "vercel.app", "netlify.app", "herokuapp.com", "glitch.me", "repl.co", "replit.app",
+    "github.io", "gitlab.io", "weebly.com", "weeblysite.com", "wixsite.com", "wix.com",
+    "godaddysites.com", "webflow.io", "myportfolio.com", "square.site", "blogspot.com",
+    "wordpress.com", "sites.google.com", "run.app", "pantheonsite.io", "webwave.dev",
+    "temporary.site", "ngrok.io", "ngrok-free.app", "trycloudflare.com", "dweb.link",
+    "ipfs.io", "cf-ipfs.com", "fleek.co", "surge.sh", "onrender.com", "fly.dev", "azurewebsites.net",
+    "jimdosite.com", "strikingly.com", "mystrikingly.com", "carrd.co", "framer.app",
+    "notion.site", "translate.goog", "linktr.ee", "typedream.app", "zyrosite.com", "site123.me",
+    "ukit.me", "tilda.ws", "yolasite.com", "webnode.page", "mobirisesite.com",
+    # free dynamic-DNS names and hosted dev sandboxes
+    "duckdns.org", "ddns.net", "no-ip.org", "no-ip.biz", "hopto.org", "zapto.org", "sytes.net", "servehttp.com",
+    "myftp.org", "dynu.net", "freeddns.org", "gitbook.io", "codeanyapp.com", "codesandbox.io", "stackblitz.io",
+    # v4: cloud storage buckets, IPFS gateways, shared hosting and site builders seen on the development split
+    "web.core.windows.net", "blob.core.windows.net", "digitaloceanspaces.com", "vultrobjects.com", "amplifyapp.com",
+    "cloudwaysapps.com", "mybluehost.me", "start.page", "siasky.net", "webcindario.com", "plesk.page",
+    "bero-webspace.de", "regruhosting.ru", "ewp.live", "wpsandbox.app", "wpsandbox.pro", "swtest.ru", "tmweb.ru",
+    "tw1.ru", "usrfiles.com", "sitebeat.crazydomains.com", "temp.domains", "cloudflare-ipfs.com", "infura-ipfs.io",
+    "mypinata.cloud", "w3s.link", "nftstorage.link", "4everland.io", "fleek.one", "ic0.app", "icp0.io",
+    "ddnss.de", "ddnss.eu", "serveirc.com", "hs-sites.com", "hs-sites-eu1.com", "firebasestorage.app",
+}
+
+# Platforms whose pages live in the path, not in a subdomain: host -> path prefixes that hold a user page.
+PATH_HOSTS = {
+    "sites.google.com": ("/",),
+    "docs.google.com": ("/forms/",),
+    "forms.gle": ("/",),
+    "view.genial.ly": ("/",),
+    "storage.googleapis.com": ("/",),
+    "firebasestorage.googleapis.com": ("/v0/b/",),
+    "ipfs.io": ("/ipfs/", "/ipns/"),
+    "cloudflare-ipfs.com": ("/ipfs/", "/ipns/"),
+    "cf-ipfs.com": ("/ipfs/", "/ipns/"),
+    "dweb.link": ("/ipfs/", "/ipns/"),
+    "gateway.pinata.cloud": ("/ipfs/", "/ipns/"),
+    "infura-ipfs.io": ("/ipfs/", "/ipns/"),
+    "ipfs.infura-ipfs.io": ("/ipfs/", "/ipns/"),
+    "w3s.link": ("/ipfs/", "/ipns/"),
+    "nftstorage.link": ("/ipfs/", "/ipns/"),
+    "storageapi.fleek.one": ("/",),
 }
 
 MULTI_SUFFIXES = {
@@ -84,6 +275,10 @@ MULTI_SUFFIXES = {
     "co.nz",
     "com.tr",
     "co.id",
+    "co.ke", "com.tw", "co.il", "com.ph", "com.ar", "com.cn", "com.ng", "co.kr", "or.jp", "ne.jp", "ac.jp",
+    "com.vn", "com.my", "com.eg", "com.sa", "org.br", "gov.in", "edu.in", "co.th", "com.co", "com.pe",
+    "com.ua", "com.pl", "co.uk.com", "org.nz", "ac.nz", "com.bd", "com.np", "com.lk", "edu.pk", "gov.pk",
+    "org.pk", "net.pk", "web.id", "my.id", "or.id", "ac.id", "go.id", "biz.id",
 }
 
 SHORTENERS = {
@@ -98,6 +293,23 @@ SHORTENERS = {
     "rb.gy",
     "shorturl.at",
     "tiny.cc",
+    # v4
+    "s.id",
+    "rebrand.ly",
+    "t.ly",
+    "bit.do",
+    "cutt.us",
+    "v.gd",
+    "qrco.de",
+    "u.to",
+    "clck.ru",
+    "tny.im",
+    "shorturl.asia",
+    "urlz.fr",
+    "surl.li",
+    "t2m.io",
+    "short.gy",
+    "tiny.one",
 }
 
 SUSPICIOUS_TLDS = {
@@ -126,6 +338,22 @@ SUSPICIOUS_TLDS = {
     "gdn",
     "support",
     "review",
+    "pw",
+    "link",
+    "site",
+    "online",
+    "club",
+    "icu",
+    "cyou",
+    "sbs",
+    "cfd",
+    "bond",
+    "lat",
+    "shop",
+    "live",
+    "vip",
+    "biz",
+    "ss",
 }
 
 LURE_WORDS = (
@@ -148,7 +376,30 @@ LURE_WORDS = (
     "billing",
     "credential",
     "webscr",
+    "webmail",
+    "authenticate",
+    "authentication",
+    "validate",
+    "validation",
+    "recovery",
+    "restore",
+    "suspended",
+    "locked",
+    "payment",
+    "refund",
+    "reward",
+    "airdrop",
+    "giveaway",
+    "wp-admin",
+    "wp-includes",
+    "wp-content",
+    "redirect",
+    "token",
+    "otp",
 )
+
+# v4: parcel-scam words, read in the host only. "package" and "parcel" were dropped: they name real shops and tracking apps.
+HOST_LURE_WORDS = ("redelivery", "undelivered", "reschedule")
 
 DOCS: list[dict[str, object]] = [
     {
@@ -192,7 +443,8 @@ DOCS: list[dict[str, object]] = [
         "text": (
             "Some suffixes are cheap to register and appear often in abuse reports. In this workbench the higher-abuse list includes "
             "tk, ml, ga, cf, gq, xyz, top, click, work, fit, buzz, monster, download, country, rest, cam, loan, men, date, racing, "
-            "stream, science, gdn, support, and review. A suffix supports the suspicious-suffix indicator only. "
+            "stream, science, gdn, support, review, pw, link, site, online, club, icu, cyou, sbs, cfd, bond, lat, shop, live, vip, biz, and ss. "
+            "The added suffixes follow the most-abused lists in the Interisle Phishing Landscape and Spamhaus reports. A suffix supports the suspicious-suffix indicator only. "
             "Ordinary sites use these suffixes too, so the signal stays weak on its own."
         ),
     },
@@ -203,8 +455,8 @@ DOCS: list[dict[str, object]] = [
         "source": "Local exhibit · Encoding",
         "text": (
             "A domain label that begins with xn-- is Punycode, the encoding used for internationalized names. "
-            "Decoded characters can resemble a Latin brand. This exhibit supports the Punycode indicator. "
-            "The workbench does not carry a homoglyph dictionary, so the flag is the encoding itself."
+            "A name written wholly in one script, such as Thai or Cyrillic, is ordinary. A label that mixes Latin letters with letters from another script "
+            "can imitate a Latin brand, as in a Cyrillic a inside paypal. This exhibit supports the Punycode indicator, which fires only on that mixed form."
         ),
     },
     {
@@ -267,7 +519,7 @@ DOCS: list[dict[str, object]] = [
         "source": "Local exhibit · Wording",
         "text": (
             "Words such as login, signin, verify, verification, secure, account, accounts, update, banking, password, confirm, "
-            "wallet, suspend, unlock, invoice, billing, and credential are common on real sign-in pages and on copies. "
+            "wallet, suspend, unlock, invoice, billing, credential, webmail, authenticate, validate, recovery, payment, refund, reward, airdrop, and token are common on real sign-in pages and on copies. "
             "This exhibit supports the lure-word indicator. On a listed official domain the weight is capped, because those words belong there. "
             "The cap does not clear an email leftover such as =3D in the same URL."
         ),
@@ -325,6 +577,74 @@ DOCS: list[dict[str, object]] = [
             "A path that contains a double slash can make later text look like a second address. "
             "The host that is named in the authority is still the host in the URL. "
             "This exhibit supports the double-slash indicator."
+        ),
+    },
+    {
+        "id": "ex-free-host",
+        "title": "Page hosted on a free site platform",
+        "tags": ["free_hosting"],
+        "source": "Local exhibit · Host",
+        "text": (
+            "Free hosting and site-builder platforms such as web.app, firebaseapp.com, workers.dev, pages.dev, vercel.app, "
+            "weeblysite.com, webflow.io, and IPFS gateways let anyone publish a page without registering a domain. "
+            "The registrable domain then belongs to the platform, not to the person who made the page, so domain reputation says nothing about it. "
+            "APWG and Interisle phishing reports list these platforms among the hosts most often used for credential pages. "
+            "This exhibit supports the free-hosting indicator. Many ordinary projects use these platforms too, so it is one signal."
+        ),
+    },
+    {
+        "id": "ex-random-label",
+        "title": "Machine-generated host label",
+        "tags": ["random_label"],
+        "source": "Local exhibit · Shape",
+        "text": (
+            "A host label with a long run of consonants, or a long mix of letters and digits, is rarely chosen by a person. "
+            "Phishing kits often create such labels in bulk on free platforms or cheap suffixes. "
+            "This workbench flags a label of at least eight characters with six or more consonants in a row, or with at least four digits mixed among letters. "
+            "This exhibit supports the random-label indicator."
+        ),
+    },
+    {
+        "id": "ex-embedded-www",
+        "title": "www or com glued inside a label",
+        "tags": ["embedded_www"],
+        "source": "Local exhibit · Host",
+        "text": (
+            "A label such as wwwofficelogin or a label ending in a glued com, as in examplecom.evil.dev, imitates the start or end of a real address. "
+            "A real address separates www and com with dots. This exhibit supports the embedded-www indicator."
+        ),
+    },
+    {
+        "id": "ex-typosquat",
+        "title": "Brand name with one character changed",
+        "tags": ["brand_mismatch", "typosquat"],
+        "source": "Local exhibit · Brand",
+        "text": (
+            "A typosquat changes, adds, drops, or swaps one character of a brand name, as in rakoten for rakuten or paypa1 for paypal. "
+            "This workbench checks an edit distance of one against brand names of at least six letters. "
+            "This exhibit supports the brand-mismatch indicator when the match is a typo rather than the exact name."
+        ),
+    },
+    {
+        "id": "ex-download",
+        "title": "Link straight to a program or archive",
+        "tags": ["file_download"],
+        "source": "Local exhibit · Payload",
+        "text": (
+            "A link whose path ends in a program or archive type such as exe, msi, bat, ps1, apk, jar, zip, rar, or iso downloads a file instead of opening a page. "
+            "Malware delivery lists such as URLhaus are made mostly of these links. "
+            "A program served raw from a user file host such as raw.githubusercontent.com or cdn.discordapp.com skips the release pages where software is normally published. "
+            "This exhibit supports the file-download indicator. Real software is also downloaded this way, so the type alone is one signal."
+        ),
+    },
+    {
+        "id": "ex-hash-path",
+        "title": "Folder named with a 32-character hex code",
+        "tags": ["hash_path"],
+        "source": "Local exhibit · Shape",
+        "text": (
+            "Phishing kits often copy themselves into a new folder for each victim, named with a 32-character hexadecimal code such as an MD5 value. "
+            "Ordinary sites also use such codes for caches and uploads, so this exhibit supports the hash-path indicator only as a weak cue that needs a second one."
         ),
     },
     {
@@ -401,6 +721,22 @@ def tld_rows() -> list[dict[str, str]]:
         "gdn": "Inexpensive generic suffix.",
         "support": "The name imitates a help desk.",
         "review": "Inexpensive generic suffix.",
+        "pw": "Inexpensive country suffix marketed as generic.",
+        "link": "The name itself is used as a lure to click.",
+        "site": "Inexpensive generic suffix.",
+        "online": "Inexpensive generic suffix.",
+        "club": "Inexpensive generic suffix.",
+        "icu": "Inexpensive generic suffix.",
+        "cyou": "Inexpensive generic suffix.",
+        "sbs": "Inexpensive generic suffix.",
+        "cfd": "Inexpensive generic suffix.",
+        "bond": "Inexpensive generic suffix.",
+        "lat": "Inexpensive generic suffix.",
+        "shop": "Inexpensive generic suffix with commerce lures.",
+        "live": "Inexpensive generic suffix.",
+        "vip": "Inexpensive generic suffix.",
+        "biz": "Older generic suffix with a high abuse share.",
+        "ss": "Country suffix seen on lookalike hosts such as brand.com.ss.",
     }
     return [{"tld": tld, "note": notes[tld]} for tld in sorted(SUSPICIOUS_TLDS)]
 

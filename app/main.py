@@ -14,7 +14,8 @@ from pydantic import BaseModel, Field
 from app import agents, store
 from app.corpus import DOCS, EXAMPLES, brand_rows, tld_rows
 from app.detector import catalog
-from app.eda_data import public_sets, summarize
+from app.detector import PHISHING_AT
+from app.eda_data import evaluation, public_sets, summarize
 from app.retrieval import VERSION
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -24,8 +25,6 @@ templates.env.globals["nav"] = [
     {"path": "/investigate", "label": "Investigate", "key": "investigate"},
     {"path": "/pipeline", "label": "Pipeline", "key": "pipeline"},
     {"path": "/methodology", "label": "Method", "key": "method"},
-    {"path": "/knowledge", "label": "Knowledge", "key": "knowledge"},
-    {"path": "/data", "label": "Data", "key": "data"},
     {"path": "/reports", "label": "Dockets", "key": "reports"},
 ]
 
@@ -118,7 +117,11 @@ def pipeline(request: Request):
 
 @app.get("/methodology")
 def methodology(request: Request):
-    return _render(request, "methodology.html", {"active": "method", "rules": catalog()})
+    return _render(
+        request,
+        "methodology.html",
+        {"active": "method", "rules": catalog(), "evaluation": evaluation(), "phishing_at": PHISHING_AT},
+    )
 
 
 @app.get("/knowledge")
@@ -177,6 +180,11 @@ def api_eda():
 @app.get("/api/rules")
 def api_rules():
     return {"rules": catalog(), "note": "Weighted rules are the risk signal. No classifier is trained."}
+
+
+@app.get("/api/evaluation")
+def api_evaluation():
+    return evaluation()
 
 
 @app.get("/api/reports")

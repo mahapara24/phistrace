@@ -19,7 +19,7 @@
     <p class="kicker">Step 3 · the signal</p>
     <h2>Weights, not a fitted model</h2>
     <div class="callout">
-      <p>No classifier is trained, and the site does not print accuracy, precision, recall, F1, ROC-AUC, or PR-AUC. Those numbers need a fitted model and a labeled test set. The score is the sum of the weights below.</p>
+      <p>No classifier is trained. The score is the sum of the weights below, and the verdict comes from the fixed decision rules under the table. Accuracy, precision, recall, F1, ROC-AUC, and PR-AUC are measured on labeled public data by <code>scripts/evaluate.py</code>; see the results further down.</p>
     </div>
     <div class="table-wrap" style="margin-top: 1rem;">
       <table>
@@ -36,7 +36,72 @@
       </table>
     </div>
     <p class="muted" style="margin-top: 0.7rem;">Score = min(100, sum of fired weights). Low is 0–20. Moderate is 21–49. High is 50–74. Critical is 75–100.</p>
+    <div class="prose" style="margin-top: 1rem;">
+      <p><strong>Verdict.</strong> <em>Phishing / malicious</em> when any of these hold: brand mismatch (including a one-character typosquat); user information before @; a mixed-script Punycode label; a program or archive download together with a raw IP, unusual port, free host, abused suffix, machine-generated label, digit-heavy host, or shortener; a program served raw from a user file host; a raw IP, higher-abuse suffix, shortener, or =3D leftover together with lure words; a free hosting platform together with lure words, a machine-generated label, a glued www/com, or a digit-heavy host; a machine-generated label together with a higher-abuse suffix or lure words; a glued www/com with any other indicator; or a score of {{ phishing_at }} or more. <em>Suspicious</em> when a medium indicator fires (raw IP, user information, brand, Punycode, shortener, port, =3D, free host, glued www/com, lure words, file download), when two weak shape cues fire together, or when the score reaches 21. One weak cue alone (a cheap suffix, a long URL, many digits, explicit HTTP) is not an alert. Otherwise <em>Not phishing</em>.</p>
+    </div>
   </section>
+
+  {% if evaluation.available %}
+  {% set cur = evaluation.current %}
+  <section class="section">
+    <p class="kicker">Measured results</p>
+    <h2>How the rules score on public data</h2>
+    <p>Every dataset is split by an MD5 hash of each URL or domain: 30% development, 70% held-out test. Rules were inspected on development splits only. OpenPhish, Phishing.Database, and URLhaus hold malicious URLs only, so they report recall; the Tranco top-100k domains are popular sites, so every flag there is a false alarm. <em>Strict</em> counts only the phishing / malicious verdict as positive; <em>Alert</em> also counts suspicious.</p>
+    <div class="table-wrap" style="margin-top: 1rem;">
+      <table>
+        <thead><tr><th>Rules</th><th>Split</th><th>Operating point</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>F1</th><th>FPR</th><th>ROC-AUC</th><th>PR-AUC</th></tr></thead>
+        <tbody>
+          {% for tagged in [evaluation.baseline, evaluation.v2, evaluation.v3, cur] if tagged %}
+          {% for point in ["strict", "alert"] %}
+          {% set m = tagged.phiusiil.test[point] %}
+          <tr>
+            <td>{{ tagged.tag }} ({{ tagged.rules }} rules)</td><td>PhiUSIIL test ({{ "{:,}".format(tagged.phiusiil.test.n) }})</td><td>{{ point|capitalize }}</td>
+            <td>{{ "%.3f"|format(m.accuracy) }}</td><td>{{ "%.3f"|format(m.precision) }}</td><td>{{ "%.3f"|format(m.recall) }}</td><td>{{ "%.3f"|format(m.f1) }}</td><td>{{ "%.4f"|format(m.fpr) }}</td>
+            <td>{{ "%.3f"|format(tagged.phiusiil.test.roc_auc) }}</td><td>{{ "%.3f"|format(tagged.phiusiil.test.pr_auc) }}</td>
+          </tr>
+          {% endfor %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="table-wrap" style="margin-top: 1rem;">
+      <table>
+        <thead><tr><th>Real-world list (test split)</th><th>URLs</th><th>Kind</th><th>Strict</th><th>Alert</th></tr></thead>
+        <tbody>
+          {% for key, label, kind in [("openphish", "OpenPhish snapshot", "phishing"), ("phishing_database", "Phishing.Database sample", "phishing"), ("urlhaus", "URLhaus (malware-filter mirror)", "malware"), ("tranco", "Tranco top-100k domains", "safe")] %}
+          {% set block = cur.external[key] %}
+          {% if block and block.available %}
+          {% if kind == "safe" %}
+          <tr><td>{{ label }}</td><td>{{ "{:,}".format(block.n) }}</td><td>false alarms</td><td>{{ "%.2f"|format(block.strict_fpr * 100) }}%</td><td>{{ "%.2f"|format(block.alert_fpr * 100) }}%</td></tr>
+          {% else %}
+          <tr><td>{{ label }}</td><td>{{ "{:,}".format(block.n) }}</td><td>{{ kind }} recall</td><td>{{ "%.3f"|format(block.strict_recall) }}</td><td>{{ "%.3f"|format(block.alert_recall) }}</td></tr>
+          {% endif %}
+          {% endif %}
+          {% endfor %}
+          {% if cur.realworld and cur.realworld.available %}
+          {% set rw = cur.realworld.alert %}
+          <tr><td><strong>Pooled malicious vs safe (alert)</strong></td><td>{{ "{:,}".format(cur.realworld.malicious_n + cur.realworld.safe_n) }}</td><td>P / R / F1</td><td colspan="2">{{ "%.3f"|format(rw.precision) }} / {{ "%.3f"|format(rw.recall) }} / {{ "%.3f"|format(rw.f1) }}</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+    {% if cur.chain %}
+    <div class="table-wrap" style="margin-top: 1rem;">
+      <table>
+        <thead><tr><th>Mode ({{ cur.chain.n }} balanced test URLs)</th><th>Unsupported-claim rate</th><th>Evidence support</th><th>Completeness</th><th>Mean chain time</th></tr></thead>
+        <tbody>
+          {% for mode, label in [("rules", "Rules only"), ("retrieval", "Retrieval only"), ("agentic", "Agentic chain")] %}
+          {% set c = cur.chain.modes[mode] %}
+          <tr><td>{{ label }}</td><td>{{ "%.1f"|format(c.unsupported_rate * 100) }}%</td><td>{{ "%.1f"|format((c.evidence_support or 0) * 100) }}%</td><td>{{ "%.1f"|format(c.completeness * 100) }}%</td><td>{{ "%.3f"|format(c.agent_ms) }} ms</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+    <p class="muted" style="margin-top: 0.7rem;"><strong>v4 changes</strong>, chosen on the development split only: more free hosting platforms, cloud storage buckets and IPFS gateways, including platforms where the page sits in the path (sites.google.com, Google Forms, ipfs.io/ipfs/…); 16 more shorteners, which now fire only when a short code follows the host; 32 more brands (parcel carriers, banks, crypto and gaming), with short or word-like names matched exactly; three parcel-scam words read in the host only; and an exact brand name on a new generic suffix (interac.tax, discord.moscow) is no longer read as the brand's own domain. The rule count is unchanged.</p>
+    <p class="muted" style="margin-top: 0.7rem;">Rebuild with <code>python scripts/evaluate.py</code>. The legitimate PhiUSIIL URLs are mostly bare https homepages, so explicit HTTP alone separates the classes there; the rules treat HTTP alone as not phishing so that the score does not lean on that artifact.</p>
+  </section>
+  {% endif %}
 
   <section class="section">
     <p class="kicker">Steps 4 and 5 · retrieval and agents</p>

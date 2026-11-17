@@ -84,7 +84,22 @@ def main() -> None:
 
     puny = analyze("http://xn--pypal-4ve.com/update")
     assert "punycode" in _ids("http://xn--pypal-4ve.com/update")
-    assert puny["score"] < 50
+    assert puny["verdict"]["code"] == "phishing"
+    assert "brand_mismatch" in _ids("http://xn--pypal-4ve.com/update")  # pypal is one edit from paypal
+
+    # v3: brand-owned infrastructure is not a lookalike
+    for own in ("https://raw.githubusercontent.com/a/b/main/readme.md", "https://dns.google/", "https://googletagmanager.com/", "https://www.google.com.do/"):
+        assert "brand_mismatch" not in _ids(own), own
+    # v3: a native-script IDN is ordinary; a mixed-script one is a homograph
+    assert analyze("https://xn--72caa3cygoc0d9c.com/")["verdict"]["code"] == "clean"
+    # v3: one weak cue alone does not raise an alert
+    assert analyze("https://arca.live/")["verdict"]["code"] == "clean"
+    # v3: malware delivery
+    raw_exe = analyze("https://raw.githubusercontent.com/someone/tool/main/service.bat")
+    assert raw_exe["verdict"]["code"] == "phishing" and "file_download" in _ids("https://raw.githubusercontent.com/someone/tool/main/service.bat")
+    assert analyze("http://198.51.100.7:8080/bins/mips.sh")["verdict"]["code"] == "phishing"
+    assert analyze("https://github.com/x/y/releases/download/1.0/tool.zip")["verdict"]["code"] == "suspicious"
+    assert analyze("https://abcxkqzwtr.duckdns.org/")["verdict"]["code"] == "phishing"
 
     for bad in ("", "javascript:alert(1)", "data:text/html,hi", "http://"):
         try:
