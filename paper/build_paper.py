@@ -235,21 +235,20 @@ AUTHOR_LINES = [
     ("mahapara2424@gmail.com", False),
 ]
 ABSTRACT = (
-    "Phishing and malware URL detection is usually treated as binary classification, and the resulting label neither collects "
-    "supporting evidence nor records an investigation. This paper presents PhishTrace, a framework that detects malicious URLs "
-    "from the URL text and then investigates the decision without any trained or generative model. A transparent detector of "
-    "twenty-two weighted rules produces a risk score and a verdict. The score then selects an investigation path for a chain of "
-    "fixed agents that consult brand and suffix registries, retrieve exhibits from a local cybersecurity knowledge base by "
-    "indicator tag, verify that each candidate sentence is covered by an exhibit, and publish only verified sentences in a report. "
-    "Pooling phishing and malware feeds against the hundred thousand most popular domains, the final rule set reaches an accuracy "
-    f"of {f3(rw4['alert']['accuracy'])}, a precision of {f3(rw4['alert']['precision'])}, a recall of {f3(rw4['alert']['recall'])}, "
-    f"and a false alarm rate of {pct(rw4['alert']['fpr'], 2)} percent, {rw2['alert']['fpr'] / rw4['alert']['fpr']:.1f} times "
-    f"lower than the first data-tuned rule set. On a held-out split of the PhiUSIIL dataset it reaches an accuracy of "
-    f"{f3(t4['alert']['accuracy'])}, a precision of {f3(t4['alert']['precision'])}, and a ROC-AUC of {f3(t4['roc_auc'])}; "
-    f"its recall of {f3(t4['alert']['recall'])} shows that many phishing URLs carry no warning sign in the URL text. In the "
-    "investigation stage the agentic chain publishes no unsupported sentence and completes every required check, while a "
-    f"single-retrieval baseline leaves {pct(ch['retrieval']['unsupported_rate'], 0)} percent of its sentences unsupported. A full "
-    "investigation takes well under one millisecond per URL."
+    "Most phishing and malware URL detectors return a label and stop there. They do not collect the evidence behind the label "
+    "or record how the case was investigated. This paper presents PhishTrace, which detects malicious URLs from the URL text and "
+    "then investigates each decision without any trained or generative model. Twenty-two weighted rules produce a risk score "
+    "and a verdict. The score decides how deep the investigation goes. A chain of fixed agents consults brand and suffix "
+    "registries, pulls tagged exhibits from a local knowledge base, and checks every candidate sentence against them. Only "
+    "sentences that pass this check reach the report. On phishing and malware feeds pooled against the 100,000 most popular "
+    f"domains, the final rule set reaches an accuracy of {f3(rw4['alert']['accuracy'])} and a precision of "
+    f"{f3(rw4['alert']['precision'])}. Its false alarm rate of {pct(rw4['alert']['fpr'], 2)} percent is "
+    f"{rw2['alert']['fpr'] / rw4['alert']['fpr']:.1f} times lower than that of the first data-tuned version. On held-out "
+    f"PhiUSIIL data, precision is {f3(t4['alert']['precision'])} and ROC-AUC is {f3(t4['roc_auc'])}, but recall is only "
+    f"{f3(t4['alert']['recall'])}: many phishing URLs show no warning sign in their text. The agentic chain publishes no "
+    "unsupported sentence and runs every required check. A single-retrieval baseline, by contrast, leaves "
+    f"{pct(ch['retrieval']['unsupported_rate'], 0)} percent of its sentences unsupported. Each investigation takes well under "
+    "a millisecond."
 )
 KEYWORDS = "phishing detection, malicious URL, rule-based detection, retrieval-augmented generation, agents, explainability, verification"
 
@@ -260,33 +259,35 @@ IND = '<w:ind w:start="10pt" w:firstLine="0pt"/>'
 
 S(h1("Introduction"))
 S(body(
-    "Phishing and malware delivery use deceptive URLs to obtain passwords and payment details or to install malicious programs, "
-    "and they remain among the most common forms of online fraud, with millions of attacks observed each year {apwg,interisle}. Most published detectors treat the problem "
-    "as binary classification: lexical, host, or page features are extracted and a classifier separates malicious from legitimate "
-    "pages {sahoo,sahingoz,tang,safi}. A class label is a useful first signal, but it does not say which evidence supports the "
-    "decision, whether that evidence was checked, or what an analyst should do next."
+    "A fake link is still one of the cheapest ways to steal a login, take a card number, or get someone to run malware. "
+    "Industry trackers count these attacks in the millions every year {apwg,interisle}. In the research literature the task is "
+    "almost always framed as yes-or-no classification. Features are pulled from the URL, the host, or the page, and a model "
+    "learns to split the two classes {sahoo,sahingoz,tang,safi}. The label such a model returns is a reasonable starting point. "
+    "It does not, however, tell an analyst what evidence lies behind it, whether anyone checked that evidence, or what to do "
+    "about the link."
 ))
 S(body(
-    "Retrieval-augmented generation (RAG) attaches retrieved context to an answer {lewis}, and agent frameworks let a system "
-    "choose tools step by step {yao}. Recent phishing work uses retrieval and, in one case, multiple agents, usually with a large language model in the loop "
-    "{nicklas,li26}. Two problems remain. First, one retrieve-and-answer step follows a fixed path and cannot decide which "
-    "evidence is still missing. Second, when a generative model writes the report, nothing guarantees that each sentence "
-    "is supported by the retrieved text."
+    "Two ideas from language-model research point toward something better. Retrieval-augmented generation (RAG) looks up "
+    "passages before producing an answer {lewis}. Agent designs let the system pick its next tool based on what it has "
+    "seen so far {yao}. Both have started to appear in phishing studies, typically with a large language model doing the "
+    "work and, in one study, several cooperating agents {nicklas,li26}. Two gaps are left open. A single look-up followed by "
+    "an answer always takes the same route, so it has no way to notice that a piece of evidence is missing. And when a "
+    "language model drafts the report, no step makes sure each of its sentences is backed by what was retrieved."
 ))
 S(body(
     "This study keeps the detect, retrieve, verify, and report chain of an agentic RAG system but builds every stage from "
     "transparent, deterministic components. No classifier is trained and no generative model is called. The detector is a "
-    "table of weighted rules that an analyst can read; the agents are fixed functions with tools; and the verifier is a "
-    "separate function that withholds any sentence no exhibit covers. The design favors auditability over raw accuracy, and "
-    "the evaluation measures how much detection quality that choice costs on both benchmark and real-world data."
+    "table of weighted rules that an analyst can read. The agents are fixed functions that call tools. The verifier is a "
+    "separate function, and it withholds any sentence that no exhibit covers. This design puts auditability ahead of raw "
+    "accuracy. The evaluation asks what that choice costs in detection quality, on benchmark data and on live feeds."
 ))
 S(body("The contributions of this paper are as follows."))
 for item in (
     "*A transparent URL detector for phishing and malware.* Twenty-two weighted rules, including five added in this work "
     "(free hosting {interisle} and dynamic DNS hosts, machine-generated labels, glued www or com labels, program or archive downloads, and "
     "per-victim hex folders), one-edit typosquat matching, and mixed-script homograph checks, produce a score and a three-way verdict.",
-    "*A score-driven agentic investigation chain.* The score selects which registries and retrievals run; a separate verifier "
-    "keeps only sentences that an exhibit covers; and the report publishes only verifier output.",
+    "*A score-driven agentic investigation chain.* The score selects which registries and retrievals run. A separate verifier "
+    "keeps only the sentences that an exhibit covers, and the report contains nothing else.",
     "*A reproducible evaluation on benchmark and real-world data.* The detector is measured on hash-based held-out splits of "
     "PhiUSIIL {prasad}, two phishing feeds {openphish,phishdb}, a malware feed {urlhaus}, and the Tranco top sites {tranco}, and the "
     "chain is compared with rules-only and retrieval-only baselines on unsupported-claim rate, evidence support, completeness, and latency.",
@@ -296,25 +297,29 @@ for item in (
 S(h1("Related Work"))
 S(h2("Machine-Learning URL and Website Detection"))
 S(body(
-    "Feature-based detection has a long history. Mohammad et al. {mohammad12,uci327} defined widely used website features, "
-    "and surveys {sahoo,tang,safi,access25} describe lexical, host-based, and content features combined with classifiers "
-    "such as logistic regression, decision trees, random forests, support vector machines, and gradient boosting. Sahingoz "
-    "et al. {sahingoz} reported strong results from URL text alone. Prasad and Chandra {prasad} released PhiUSIIL, a large "
-    "URL dataset with similarity-index features. These systems output a label but do not retrieve, verify, or report evidence."
+    "Learning from hand-built features is the oldest and largest line of work. The website feature set of Mohammad et al. "
+    "{mohammad12,uci327} is still reused in many later studies. Several surveys {sahoo,tang,safi,access25} catalogue the "
+    "features in use, which come from the URL string, the host, and the page itself, and the models trained on them, from "
+    "logistic regression and decision trees to random forests, support vector machines, and boosted ensembles. Sahingoz et al. "
+    "{sahingoz} showed that the URL string on its own can already give high accuracy. Prasad and Chandra {prasad} built "
+    "PhiUSIIL, a large labeled URL collection that adds similarity-index features. In all of these systems the output ends "
+    "at a label; nothing is retrieved, checked, or written up."
 ))
 S(h2("Heuristic and Lexical Detection"))
 S(body(
-    "Before trained models dominated, phishing was detected with interpretable heuristics. Garera et al. {garera} measured "
-    "URL obfuscation patterns such as brand names in subdomains and IP hosts, and CANTINA {cantina} combined term "
-    "statistics with heuristics. Studies of combosquatting {kintis} and typosquatting {agten} show that attackers attach "
-    "words to a brand name or change one character of it. These findings motivate the brand rules used here."
+    "Early detectors relied on rules a person could read. Garera et al. {garera} measured how often phishing URLs hide their "
+    "target, for instance by placing a brand name in a subdomain or using a bare IP address as the host. CANTINA {cantina} "
+    "mixed word-frequency scores from the page with a small set of such rules. Two long-term measurement studies, one on "
+    "combosquatting {kintis} and one on typosquatting {agten}, found that attackers either add extra words to a brand name or "
+    "alter a single character in it. The brand rules in PhishTrace are built around exactly these two tricks."
 ))
 S(h2("Retrieval and Agents for Phishing Analysis"))
 S(body(
-    "Nicklas et al. {nicklas} added retrieved context to open language models for phishing email detection, but the output "
-    "is still a class label. Li et al. {li26} used multi-agent RAG to explain phishing intention. Neither work joins a URL "
-    "detector, retrieved evidence, and a verifier that controls what the report may claim. Table I summarizes the gap that "
-    "this paper addresses."
+    "Nicklas et al. {nicklas} fed retrieved context to open language models to classify phishing emails. Retrieval enriches "
+    "the input there, yet the system still answers with a class. Li et al. {li26} went further and used several RAG agents "
+    "to explain what a phishing page is trying to achieve. Neither study links a URL detector to retrieved evidence and then "
+    "to a checker that limits what the final report is allowed to say. Table I sets the two studies beside earlier detectors "
+    "and this work."
 ))
 S(table(
     "Comparison with Prior Work",
@@ -327,7 +332,7 @@ S(table(
         ["This work", "Rules", "Yes", "Yes", "Verified"],
     ],
     [62, 44, 44, 44, 46],
-    "‡Aggregates agent outputs but does not check each report sentence against retrieved evidence. Li et al. classify the intent of known phishing pages rather than detect phishing.",
+    "‡Combines the agents' outputs, but no step tests each report sentence against the retrieved text. Li et al. start from pages already known to be phishing and label their intent; they do not detect phishing.",
 ))
 
 S(h1("Research Questions and Objectives"))
@@ -351,8 +356,8 @@ S(body(
 
 S(h1("Methodology"))
 S(body(
-    "Fig. 1 shows the pipeline. The system reads only the URL string; it never opens the page, follows a redirect, or "
-    "contacts the host, so an investigation cannot trigger the attack it studies."
+    "Fig. 1 shows the pipeline. The system reads only the URL string. It never opens the page, follows a redirect, or "
+    "contacts the host, so an investigation cannot set off the attack it is studying."
 ))
 S(figure(HERE / "fig1_pipeline.png", "PhishTrace pipeline. The detector score selects the investigation path. The green "
          "stages form the agentic chain; the baselines reuse the same signal."))
@@ -371,14 +376,14 @@ S(body(
     "Table II lists the strongest rules. A brand mismatch fires when a token in the host or user information names one of "
     f"{N_BRANDS} listed brands, but the registrable domain is not on that brand's list of official and infrastructure domains (for "
     "example githubusercontent.com for GitHub) and is not under a brand-owned top-level domain such as .google. The exact brand "
-    "name on a country-code suffix or on .com, .net, or .org (hsbc.fr) is read as the brand's own domain; on a newer generic "
-    "suffix (interac.tax) it is not, because anyone can register it. A token "
+    "name on a country-code suffix or on .com, .net, or .org (hsbc.fr) is read as the brand's own domain. On a newer generic "
+    "suffix (interac.tax) it is not, because anyone can register such a name. A token "
     "matches when it equals the brand, starts with it (a common form of combosquatting {kintis}), or, for names of six or more letters, differs "
     "by one insertion, deletion, substitution, or adjacent swap (typosquatting {agten}). Brands that are also ordinary words, "
     "such as apple and steam, match a longer token only when the extra text is an account word such as id, login, or support, "
     "and short brand names such as DHL or DPD match only a whole token. "
-    "A Punycode label fires only when it decodes to Latin letters mixed with letters of another script, the homograph form; a "
-    "name written wholly in Thai, Cyrillic, or accented Latin does not fire."
+    "A Punycode label fires only when it decodes to Latin letters mixed with letters of another script, which is the homograph "
+    "form. A name written wholly in Thai, Cyrillic, or accented Latin does not fire."
 ))
 S(table(
     "Main Detection Rules",
@@ -403,14 +408,15 @@ S(table(
 ))
 S(h2("Verdict Decision"))
 S(body(
-    "The verdict is *phishing / malicious* when a strong rule fires (brand mismatch, user information, or a mixed-script label), "
-    "when a host signal fires together with a corroborating one (a free host with lure words or a machine-generated label; an "
-    "abused suffix, raw IP, or shortener with lure words; a file download with a raw IP, unusual port, free host, abused suffix, "
-    "or machine-generated label), when a program is served raw from a user file host such as raw.githubusercontent.com, or when "
-    "the score reaches 40. The verdict is *suspicious* when a medium rule fires, when two weak shape cues fire together, or when "
-    "the score reaches 21. One weak cue alone, such as an abused suffix, a long URL, a digit-heavy host, or explicit HTTP, is not "
-    "an alert, because each is common on popular legitimate sites. Otherwise the verdict is *not phishing*. Two operating points "
-    "are reported: *strict*, where only the phishing verdict counts as positive, and *alert*, where suspicious also counts."
+    "The verdict is *phishing / malicious* in four cases. The first is a strong rule: brand mismatch, user information, or a "
+    "mixed-script label. The second is a host signal backed by a second cue. A free host needs lure words or a machine-generated "
+    "label. An abused suffix, raw IP, or shortener needs lure words. A file download needs a raw IP, an unusual port, a free host, "
+    "an abused suffix, or a machine-generated label. The third is a program served raw from a user file host such as "
+    "raw.githubusercontent.com, and the fourth is a score of 40 or more. The verdict is *suspicious* when a medium rule fires, "
+    "when two weak shape cues fire together, or when the score reaches 21. One weak cue on its own, such as an abused suffix, a "
+    "long URL, a digit-heavy host, or explicit HTTP, does not raise an alert, because each of these is common on popular "
+    "legitimate sites. Every other URL is *not phishing*. Results are given at two operating points. At the *strict* point only "
+    "the phishing verdict counts as positive, and at the *alert* point suspicious counts too."
 ))
 S(h2("Knowledge Base and Retrieval"))
 S(body(
@@ -422,40 +428,44 @@ S(body(
 S(h2("Agentic Investigation Chain"))
 S(body(
     "The chain has five fixed roles. The *detector* records the score and verdict. The *planner* selects a light path for a "
-    "score below 21, a standard path from 21 to 49, and a deep path at 50 or above; a brand token or an abused suffix also "
+    "score below 21, a standard path from 21 to 49, and a deep path at 50 or above. A brand token or an abused suffix also "
     "opens its registry on a lower path. The *tool* role consults the selected registries and retrieves exhibits by the "
-    "tag of each fired rule, plus a low-score exhibit on the light path. The *verifier* is a separate function: a candidate "
-    "sentence is published only if at least one cited exhibit carries the tag of the rule that produced it. The *reporter* "
-    "receives only verified sentences and adds protective recommendations. The next step therefore depends on the detector "
-    "output, each evidence source is a separate tool, and verification is kept apart from report writing."
+    "tag of each fired rule, plus a low-score exhibit on the light path. The *verifier* is a separate function. It publishes a "
+    "candidate sentence only if at least one cited exhibit carries the tag of the rule that produced it. The *reporter* "
+    "receives only verified sentences and adds protective recommendations. In short, the detector output decides the next "
+    "step, each evidence source is its own tool, and checking is kept apart from writing."
 ))
 S(h2("Baselines"))
 S(body(
-    "Two baselines use the same detection signal. *Rules only* publishes the fired-rule sentences and a class label with no "
-    "retrieval or verification. *Retrieval only* runs one search over the URL words, attaches the same results to every "
-    "sentence, and publishes them without verification. This mirrors a single-step RAG pipeline."
+    "Both baselines start from the same detector output. *Rules only* writes one sentence per fired rule, adds the class "
+    "label, and stops; it retrieves nothing and checks nothing. *Retrieval only* searches once using the words in the URL, "
+    "pins the same search results to every sentence, and publishes the lot unchecked. It stands in for a one-step RAG "
+    "pipeline."
 ))
 S(h2("Evaluation Metrics"))
 S(body(
-    "Detection is measured with accuracy, precision, recall, F1 score, false positive rate (FPR), ROC-AUC, and PR-AUC. "
-    "ROC-AUC uses the uncapped score with average ranks for ties, and PR-AUC is average precision over score thresholds. "
-    "For investigation, the *unsupported-claim rate* is the share of candidate sentences that no cited exhibit covers; "
-    "*evidence support* is the share of published sentences that are covered; and *completeness* is the share of required "
-    "checks that ran, from a nine-item checklist whose required items depend on the score (for example, the brand registry "
-    "is required when a brand token is present). Latency is wall-clock time per investigation."
+    "Detection quality is reported as accuracy, precision, recall, F1 score, false positive rate (FPR), ROC-AUC, and PR-AUC. "
+    "Both area measures rank URLs by the raw score before the cap of 100 is applied. ROC-AUC gives tied scores their average "
+    "rank, and PR-AUC is computed as average precision across all score thresholds. "
+    "Three measures describe the investigation. The *unsupported-claim rate* is the share of candidate sentences that no cited "
+    "exhibit covers. *Evidence support* is the share of published sentences that are covered. *Completeness* is the share of "
+    "required checks that actually ran. The checks come from a nine-item list, and which items are required depends on the "
+    "score; for example, the brand registry is required whenever a brand token is present. Latency is the wall-clock time "
+    "of one investigation."
 ))
 
 S(h1("Experimental Setup"))
 S(h2("Datasets"))
 S(body(
-    f"PhiUSIIL {{prasad}} provides 235,795 labeled URLs; {n(N_ALL)} could be parsed as http or https URLs. Four real-world lists "
-    "add data PhiUSIIL never saw: a snapshot of OpenPhish {openphish}; active links from Phishing.Database {phishdb}; online "
-    "malware URLs derived from URLhaus {urlhaus}, taken from the malware-filter urlhaus-filter list {urlhausmirror}, which "
-    "republishes URLhaus online entries twice daily without the URL scheme; the mirror lets the evaluation be reproduced without "
-    "a (free) abuse.ch Auth-Key, which URLhaus bulk downloads now require; and the top 100,000 domains of the Tranco list {tranco} "
-    "generated on 7 November 2026 (list ID 94P72, https://tranco-list.eu/list/94P72), read as https homepages, as popular safe "
-    "sites. Every URL or domain is assigned to a split by its MD5 hash: three of ten buckets form the development split and the "
-    "rest form the held-out test split. OpenPhish is used only for testing. Table III gives the test sizes; the larger lists are "
+    f"PhiUSIIL {{prasad}} provides 235,795 labeled URLs, of which {n(N_ALL)} parse as http or https URLs. Four real-world lists "
+    "add data that PhiUSIIL never saw. The first is a snapshot of OpenPhish {openphish}, and the second is the set of active "
+    "links in Phishing.Database {phishdb}. The third holds online malware URLs from URLhaus {urlhaus}. They are taken from the "
+    "malware-filter project's urlhaus-filter list {urlhausmirror}. That list copies the URLhaus entries that are still online, "
+    "refreshes the copy twice a day, and strips the http or https prefix. Working from the copy lets anyone rerun the "
+    "evaluation without first getting an abuse.ch Auth-Key, a free key that URLhaus now demands for bulk downloads. The fourth list supplies popular safe sites: the top 100,000 domains of the Tranco "
+    "list {tranco} generated on 7 November 2026 (list ID 94P72, https://tranco-list.eu/list/94P72), read as https homepages. "
+    "Each URL or domain is placed in a split by its MD5 hash. Three of ten buckets form the development split, and the rest "
+    "form the held-out test split. OpenPhish is used only for testing. Table III gives the test sizes. The larger lists are "
     "sampled with a fixed seed."
 ))
 S(table(
@@ -476,15 +486,16 @@ S(body(
     "The first rule set (v1, 17 rules) was written from the literature before any data was inspected. Version 2 (20 rules) was "
     "built by studying misses and false alarms on the PhiUSIIL development split: three new rules, typosquat matching, more "
     "brands, suffixes {interisle}, and lure words, and new decision combinations. Version 3 (22 rules) was built after adding the "
-    "real-world development splits. It fixed false alarms on brand infrastructure (for example, v2 flagged every "
-    "raw.githubusercontent.com link as a GitHub lookalike) and on native-script internationalized names; added the file-download "
-    "and hex-folder rules and dynamic DNS hosts for malware and kit hosting; and stopped single weak cues from raising an alert. "
-    "Version 4 keeps the 22 rules of v3 and was built from an analysis of the phishing URLs that v3 missed on the development "
-    "splits. It widens the lists rather than the rules: cloud storage buckets, IPFS gateways, and shared hosts, including "
-    "platforms whose pages sit in the path (sites.google.com, Google Forms, ipfs.io/ipfs/); more shorteners, which now fire only "
-    "when a short code follows the host; and more brands (parcel carriers, banks, cryptocurrency, and games). A brand was kept "
-    "only when it recovered missed phishing on the development splits and raised at most one or two alerts on popular domains; "
-    "short or common-word candidates such as line, att, and meta were rejected for that reason. V4 also closed a gap in which "
+    "real-world development splits. It fixed false alarms on brand infrastructure and on native-script internationalized names. "
+    "For example, v2 had flagged every raw.githubusercontent.com link as a GitHub lookalike. Version 3 also added the file-download and "
+    "hex-folder rules and dynamic DNS hosts for malware and kit hosting, and it stopped single weak cues from raising an alert. "
+    "Version 4 keeps the 22 rules of v3. It came from studying the phishing URLs that v3 missed on the development splits, and "
+    "it widens the lists rather than the rules. The hosting list gains cloud storage buckets, IPFS gateways, and shared hosts, "
+    "including platforms whose pages sit in the path (sites.google.com, Google Forms, ipfs.io/ipfs/). The shortener list grows, "
+    "and a shortener now fires only when a short code follows the host. The brand list adds parcel carriers, banks, "
+    "cryptocurrency services, and games. A new brand was kept only if it recovered missed phishing on the development splits "
+    "and raised no more than one or two alerts on popular domains. Short or common-word names such as line, att, and meta "
+    "failed that test. V4 also closed a gap in which "
     "an exact brand name on a new generic suffix, such as interac.tax, was read as the brand's own domain. "
     "Test splits were used only for the final measurement."
 ))
@@ -502,7 +513,7 @@ S(body(
     f"{f3(t1['alert']['recall'])} in v1 to {f3(t2['alert']['recall'])} in v2, while the false positive rate falls from "
     f"{pct(t1['alert']['fpr'], 2)} to {pct(t2['alert']['fpr'], 2)} percent. Version 3 gives up some recall "
     f"({f3(t3['alert']['recall'])}) because single weak cues no longer raise an alert, and cuts the false positive rate to "
-    f"{pct(t3['alert']['fpr'], 3)} percent; the next subsection shows why that trade pays off on real traffic. Version 4 "
+    f"{pct(t3['alert']['fpr'], 3)} percent. Section VI-B shows why this trade is worth making on real traffic. Version 4 "
     f"recovers most of that recall ({f3(t4['alert']['recall'])}) and raises accuracy from {f3(t3['alert']['accuracy'])} to "
     f"{f3(t4['alert']['accuracy'])} and F1 from {f3(t3['alert']['f1'])} to {f3(t4['alert']['f1'])}, at a false positive rate "
     f"of {pct(t4['alert']['fpr'], 3)} percent and a precision of {f3(t4['alert']['precision'])}. ROC-AUC is "
@@ -526,7 +537,7 @@ S(h2("Real-World Phishing, Malware, and Popular Sites (RQ1)"))
 S(body(
     "Table V and Fig. 3 report the real-world lists at the alert point. On the Tranco top 100,000 domains, v2 raises an alert "
     f"on {pct(ext2['tranco']['alert_fpr'])} percent of popular sites, mostly because of a single abused suffix, a digit-heavy name, "
-    f"or a brand token on brand infrastructure; v3 lowers this to {pct(ext3['tranco']['alert_fpr'])} percent, a "
+    f"or a brand token on brand infrastructure. Version 3 brings this down to {pct(ext3['tranco']['alert_fpr'])} percent, a "
     f"{ext2['tranco']['alert_fpr'] / ext3['tranco']['alert_fpr']:.1f}-fold reduction. URLhaus recall is "
     f"{f3(ext3['urlhaus']['alert_recall'])} in v3. The v2 figure of {f3(ext2['urlhaus']['alert_recall'])} looks similar but was "
     "inflated by the raw.githubusercontent.com false match: its strict recall falls from "
@@ -566,7 +577,7 @@ S(h2("Contribution of Individual Rules"))
 S(body(
     "Table VI gives the share of PhiUSIIL test URLs on which the most frequent rules fire. The free-hosting rule fires on "
     f"{R['free_hosting']['phishing_pct']:.1f} percent of phishing URLs and on almost no legitimate ones. Explicit HTTP fires on "
-    "about half of the phishing URLs and never on legitimate ones; Section VII explains why it is nevertheless kept weak."
+    "about half of the phishing URLs and never on legitimate ones. Section VII-C explains why it still carries little weight."
 ))
 S(table(
     "Rule Firing Rates on the PhiUSIIL Test Split (Percent)",
@@ -610,12 +621,12 @@ S(body(
 S(h1("Discussion"))
 S(h2("Precision Against Recall"))
 S(body(
-    "The gate introduced in v3, which ignores single weak cues, is a deliberate operating choice. A sensitive variant of v4 that "
+    "The v3 gate, which ignores single weak cues, trades some recall for fewer false alarms. A sensitive variant of v4 that "
     "keeps every v4 rule but lets any single cue raise an alert, as v2 did, reaches a PhiUSIIL F1 of "
     f"{f3(ts['alert']['f1'])} and a pooled real-world recall of {f3(rws['alert']['recall'])}, "
     f"but it raises an alert on {pct(exts['tranco']['alert_fpr'])} percent of popular sites, against "
-    f"{pct(ext4['tranco']['alert_fpr'], 2)} percent for v4. The precise gate was chosen because "
-    "a tool that flags several of every hundred popular sites trains users to ignore it. Both variants are produced by the same "
+    f"{pct(ext4['tranco']['alert_fpr'], 2)} percent for v4. The stricter gate was kept because "
+    "a tool that flags several of every hundred popular sites soon teaches its users to ignore it. Both variants come from the same "
     "evaluation script."
 ))
 S(h2("What Limits Recall"))
@@ -626,13 +637,13 @@ S(body(
     "domains such as http://www.example-shop.com, with no brand token, lure word, or unusual structure. Broader matching was "
     "tested there and rejected: one-edit typos of brand infrastructure names and alerts on an abused suffix alone recovered "
     "thousands of misses but multiplied false alarms on popular sites. A detector that reads only "
-    "the URL text cannot separate these from legitimate pages; page content, domain age, or reputation data would be needed. "
-    "This is a limit of URL-only evidence rather than of the rule format."
+    "the URL text cannot tell these apart from legitimate pages. Page content, domain age, or reputation data would be needed. "
+    "The limit lies in URL-only evidence, not in the rule format."
 ))
 S(h2("Dataset Artifacts"))
 S(body(
     "Almost every legitimate URL in PhiUSIIL is an https homepage, so explicit HTTP alone would separate the classes there with "
-    "high accuracy; the rules treat HTTP as a weak cue so the score does not lean on that artifact. None of the legitimate "
+    "high accuracy. The rules treat HTTP as a weak cue so that the score does not lean on this artifact. None of the legitimate "
     "development URLs has a path, and the Tranco sites are also homepages, so rules that read the path, such as file download, "
     "hex folder, long URL, lure words in the path, and the path-based hosting platforms added in v4, are not tested for false "
     "alarms on real deep links such as sign-in pages, shared documents, or software downloads. A file download alone is only "
@@ -643,8 +654,8 @@ S(h2("What the Verifier Guarantees"))
 S(body(
     "The zero unsupported-claim rate of the agentic chain holds by construction: the verifier blocks any sentence that no "
     "exhibit covers. Because the knowledge base covers all twenty-two rules, no sentence had to be withheld in the experiment. "
-    "The value of the comparison is that it shows how often the baselines publish unsupported text, and that coverage gaps "
-    "in the knowledge base would surface as withheld sentences rather than as unsupported claims. Support here means tag "
+    "What the comparison does show is how often the baselines publish unsupported text. It also shows that a gap in the "
+    "knowledge base would appear as a withheld sentence, not as an unsupported claim. Support here means tag "
     "coverage, not semantic entailment, and the exhibits are written for this system rather than drawn from a live threat feed."
 ))
 S(h2("Limitations and Threats to Validity"))
@@ -652,33 +663,33 @@ S(body(
     "The rules, weights, thresholds, and lists were set by hand on development splits that share their sources with the test "
     f"splits. The brand list has {N_BRANDS} entries and the brand infrastructure lists are incomplete, so other brands rely on structural "
     "rules and some official domains may still be flagged. On the test split, v4 flags "
-    f"{n(t4['alert']['fp'])} legitimate PhiUSIIL URLs against {n(t3['alert']['fp'])} for v3; most of the new alerts are one-edit "
-    "matches of the added brands on unrelated names. They were seen only on the test split and were deliberately left unfixed, so "
-    "that the test numbers stay unbiased. Feeds and popularity lists change daily and the lists need "
-    "maintenance. Phishing.Database marks a link active when it is still reachable, not when it is re-confirmed as phishing, "
-    "so some of its labels may be stale. Trained classifiers and language-model baselines from the original proposal were deliberately left out to "
-    "keep every decision auditable; comparing against them is future work."
+    f"{n(t4['alert']['fp'])} legitimate PhiUSIIL URLs against {n(t3['alert']['fp'])} for v3. Most of the new alerts are one-edit "
+    "matches of the added brands on unrelated names. They appeared only on the test split, so they were left unfixed to keep "
+    "the test numbers unbiased. Feeds and popularity lists change daily, and the lists will need upkeep. Phishing.Database "
+    "marks a link active when it is still reachable, not when it has been re-confirmed as phishing, so some of its labels may "
+    "be stale. Finally, the trained classifiers and language-model baselines of the original proposal were left out to keep "
+    "every decision auditable. Comparing against them is future work."
 ))
 
 S(h1("Conclusion"))
 S(body(
-    "PhishTrace shows that the detect, retrieve, verify, and report chain of an agentic RAG system can be built without any "
-    "trained or generative model. A readable set of twenty-two rules reaches an accuracy of "
-    f"{f3(t4['alert']['accuracy'])}, a precision of {f3(t4['alert']['precision'])}, and a ROC-AUC of {f3(t4['roc_auc'])} on "
-    f"held-out PhiUSIIL data, flags {pct(ext4['urlhaus']['alert_recall'], 0)} percent of live malware URLs, mostly as risky "
-    f"downloads, and raises an alert on only {pct(ext4['tranco']['alert_fpr'])} percent of the most popular sites, giving a "
-    f"pooled real-world accuracy of {f3(rw4['alert']['accuracy'])} and F1 of {f3(rw4['alert']['f1'])}. Its main limit is "
-    "recall: URL text alone cannot reveal phishing hosted on plain-looking domains. The score-driven agents complete every "
-    "required check and publish only verified sentences, "
-    "while a single retrieval pass leaves most sentences unsupported. Future work will add page-content and domain-age evidence "
-    "through the same tool interface and compare the chain with trained and language-model baselines."
+    "PhishTrace shows that an agentic RAG pipeline can work without any trained or generative model. Twenty-two readable rules "
+    f"reach an accuracy of {f3(t4['alert']['accuracy'])}, a precision of {f3(t4['alert']['precision'])}, and a ROC-AUC of "
+    f"{f3(t4['roc_auc'])} on held-out PhiUSIIL data. On live feeds they flag {pct(ext4['urlhaus']['alert_recall'], 0)} percent "
+    "of malware URLs, mostly as risky downloads, and raise an alert on only "
+    f"{pct(ext4['tranco']['alert_fpr'])} percent of the most popular sites. Pooled real-world accuracy is "
+    f"{f3(rw4['alert']['accuracy'])} and F1 is {f3(rw4['alert']['f1'])}. Recall is the main weakness, because URL text alone "
+    "cannot expose phishing on plain-looking domains. On the investigation side, the score-driven agents run every required "
+    "check and publish only verified sentences, whereas a single retrieval pass leaves most sentences unsupported. Next steps "
+    "are to add page-content and domain-age evidence through the same tool interface and to compare the chain with trained "
+    "and language-model baselines."
 ))
 
 S(h5("Code Availability"))
 S(body(
     "The implementation, evaluation script, and figure scripts are available at https://github.com/mahapara24/phistrace. "
     "Running python scripts/evaluate.py reproduces every number in this paper from the public data files listed in the "
-    "README; adding --sensitive reproduces the sensitive variant. The results of the earlier rule sets are kept in "
+    "README. Adding --sensitive reproduces the sensitive variant. The results of the earlier rule sets are kept in "
     "data/eval_baseline.json, data/eval_v2.json, and data/eval_v3.json."
 ))
 S(h5("References"))
