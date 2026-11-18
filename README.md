@@ -76,3 +76,16 @@ python3 paper/build_paper.py path/to/conference-template-a4.docx
 ```
 
 This writes `paper/Mahapara_PhishTrace_IEEE.docx` in the IEEE A4 conference template, with every number read from the evaluation files.
+
+The PDF and ODT copies in `paper/` are converted from that DOCX with LibreOffice:
+
+```bash
+soffice --headless --convert-to pdf --outdir paper paper/Mahapara_PhishTrace_IEEE.docx
+soffice --headless --convert-to odt --outdir paper paper/Mahapara_PhishTrace_IEEE.docx
+```
+
+| File | Format |
+|---|---|
+| `paper/Mahapara_PhishTrace_IEEE.docx` | Word |
+| `paper/Mahapara_PhishTrace_IEEE.odt` | OpenDocument Text |
+| `paper/Mahapara_PhishTrace_IEEE.pdf` | PDF |
