@@ -689,7 +689,8 @@ S(h5("Code Availability"))
 S(body(
     "The implementation, evaluation script, and figure scripts are available at https://github.com/mahapara24/phistrace. "
     "Running python scripts/evaluate.py reproduces every number in this paper from the public data files listed in the "
-    "README. Adding --sensitive reproduces the sensitive variant. The results of the earlier rule sets are kept in "
+    "README. Running python scripts/evaluate.py --sensitive --out data/eval_v4_sensitive.json reproduces the sensitive "
+    "variant. The results of the earlier rule sets are kept in "
     "data/eval_baseline.json, data/eval_v2.json, and data/eval_v3.json."
 ))
 S(h5("References"))
