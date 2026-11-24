@@ -66,7 +66,7 @@ python scripts/evaluate.py --sensitive --out data/eval_v4_sensitive.json
 
 Held-out test results (v4, alert point): PhiUSIIL accuracy 0.813, precision 0.998, recall 0.566, F1 0.722, FPR 0.075%, ROC-AUC 0.954. Pooled OpenPhish + Phishing.Database + URLhaus against Tranco top-100k: accuracy 0.923, precision 0.986, recall 0.802, F1 0.884, false alarms 0.65%. v4 keeps the 22 rules of v3 and widens their lists (hosting platforms, shorteners, brands); see the Method page.
 
-Testing screenshots: [`screenshots/`](screenshots/README.md) holds full PhishTrace reports for 15 real phishing URLs plus the classroom example, 2 malware URLs, 5 safe sites, and one three-mode comparison, with a results table.
+Testing screenshots: [`screenshots/`](screenshots/README.md) holds full PhishTrace reports for hand-picked examples (not a detection test): 15 real phishing URLs plus the classroom example, 2 malware URLs, 5 safe sites, and one three-mode comparison, with a results table.
 
 Limitation: every legitimate URL in PhiUSIIL and Tranco is a bare homepage, so false alarms on real deep links (sign-in pages, shared documents, software downloads) are not measured.
 

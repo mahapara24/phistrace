@@ -12,7 +12,14 @@ PhishTrace reads only the URL text. None of these pages were opened.
 - **Malware:** real links from [URLhaus](https://urlhaus.abuse.ch/) via the malware-filter mirror, online list of 8 Nov 2026.
 - **Safe:** well-known legitimate sites.
 
-Case 01 is the made-up classroom example from the main README. Every other phishing and malware URL comes from the **held-out test split** (MD5 hash bucket 3–9), so the rules were never tuned on them. Case 06 is a real phishing link that PhishTrace misses. It is included on purpose, because it shows the recall limit discussed in the paper: some phishing URLs carry no warning sign in their text.
+Case 01 is the made-up classroom example from the main README.
+
+**These are hand-picked examples, not a detection test.** The URLs were chosen after looking at their scores. Cases 15–24 were searched for among links that name a well-known brand, and links rated not phishing were skipped, so all ten were certain to raise an alert.
+
+- The real phishing URLs (02–06 and 15–24) are in the held-out test split used by `scripts/evaluate.py`.
+- The two malware URLs (07 and 08) are in the **development split**, so they are not held-out examples.
+
+Case 06 is a real phishing link that PhishTrace misses. It is included on purpose, because it shows the recall limit discussed in the paper: some phishing URLs carry no warning sign in their text.
 
 ## Results
 
@@ -42,7 +49,9 @@ Case 01 is the made-up classroom example from the main README. Every other phish
 | 23 | [instagram-on-blogspot](23_phishing_instagram-on-blogspot.png) | Phishing | `https://instagramlinkprofile.blogspot.am` | Phishing / malicious | 50 | Brand mismatch, Free hosting platform |
 | 24 | [dhl-parcel-brand-mismatch](24_phishing_dhl-parcel-brand-mismatch.png) | Phishing | `https://parcel-dhl.pcbasedsolutions.com/public/cs73gwz8o9xdtreygeixay6itfhl3vfz` | Phishing / malicious | 28 | Brand mismatch |
 
-**Summary:** of the 16 phishing URLs, 14 are flagged as phishing / malicious, 1 as suspicious (05), and 1 is missed (06). Both malware URLs raise an alert. All 5 safe sites are rated not phishing, including the real PayPal sign-in page, so the brand rule does not fire on a brand's own domain.
+**What these examples show:** the reports for links the rules catch, one link rated suspicious (05), one real phishing link that is missed (06), and five well-known safe sites rated not phishing. The real PayPal sign-in page (13) is not mistaken for a fake.
+
+**Do not read a detection rate from this table.** The measured rates come from `scripts/evaluate.py` on held-out data, counting phishing and suspicious verdicts as alerts: recall is 0.622 on Phishing.Database, 0.797 on OpenPhish, 0.982 on URLhaus and 0.566 on PhiUSIIL, with false alarms on 0.65% of popular Tranco sites. See the paper and `data/eval_results.json`.
 
 ## Three-mode comparison
 
