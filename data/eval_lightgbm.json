@@ -1,0 +1,257 @@
+{
+ "n": {
+  "train_phiusiil": 70556,
+  "train_extra": 48011,
+  "test": 165231,
+  "realworld": 110289
+ },
+ "rules": {
+  "phiusiil": {
+   "accuracy": 0.813388528786971,
+   "precision": 0.9982304413927174,
+   "recall": 0.5655863870648874,
+   "f1": 0.7220609709928067,
+   "fpr": 0.0007519911879342484
+  },
+  "realworld": {
+   "accuracy": 0.9234012458178059,
+   "precision": 0.9861416361416362,
+   "recall": 0.801637717121588,
+   "f1": 0.884369011771147,
+   "fpr": 0.006486733629570361
+  },
+  "realworld_host_only": {
+   "accuracy": 0.706589052398698,
+   "precision": 0.9486889692585895,
+   "recall": 0.208287841191067,
+   "f1": 0.3415805322698787,
+   "fpr": 0.006486733629570361
+  }
+ },
+ "shortcuts": {
+  "phiusiil_not_https_www_homepage": {
+   "accuracy": 0.9956000992549824,
+   "precision": 1.0,
+   "recall": 0.9897338134576008,
+   "f1": 0.9948404221343762,
+   "fpr": 0.0
+  },
+  "realworld_has_path": {
+   "accuracy": 0.9522617849468216,
+   "precision": 1.0,
+   "recall": 0.8693548387096774,
+   "f1": 0.9301121656600517,
+   "fpr": 0.0
+  }
+ },
+ "path_share": {
+  "openphish": 0.75,
+  "phishdb": 0.7572,
+  "urlhaus": 0.9833,
+  "tranco": 0.0
+ },
+ "phiusiil_https_www_homepage": {
+  "phishing": 0.010266186542399209,
+  "legitimate": 1.0
+ },
+ "models": {
+  "full|phiusiil": {
+   "phiusiil": {
+    "accuracy": 0.9978635970247713,
+    "precision": 0.9993480171216373,
+    "recall": 0.9956647602908988,
+    "f1": 0.9975029886325857,
+    "fpr": 0.0004872055583799356,
+    "auc": 0.9983149282586528,
+    "recall_at_rules_fpr": 0.9956647602908988
+   },
+   "realworld": {
+    "accuracy": 0.3625746901322888,
+    "precision": 0.3636032988715822,
+    "recall": 0.9922580645161291,
+    "f1": 0.5321905547755146,
+    "fpr": 1.0,
+    "auc": 0.8193355824047075,
+    "recall_at_rules_fpr": 0.6642183622828784
+   },
+   "mcnemar_phiusiil": {
+    "rules_only_correct": 74,
+    "model_only_correct": 30555,
+    "chi2": 30331.7,
+    "p": 0.0
+   },
+   "mcnemar_realworld": {
+    "rules_only_correct": 69650,
+    "model_only_correct": 7797,
+    "chi2": 49397.3,
+    "p": 0.0
+   },
+   "ms_per_url": 1.0358699399997326
+  },
+  "full|phiusiil+realworld": {
+   "phiusiil": {
+    "accuracy": 0.9908491747916554,
+    "precision": 0.9987765031019245,
+    "recall": 0.9798489020687707,
+    "f1": 0.9892221715328468,
+    "fpr": 0.0009002711404846636,
+    "auc": 0.9971552312896845,
+    "recall_at_rules_fpr": 0.9793687778013133
+   },
+   "realworld": {
+    "accuracy": 0.9969443915531014,
+    "precision": 0.9960527295747374,
+    "recall": 0.9955831265508684,
+    "f1": 0.9958178726995197,
+    "fpr": 0.002271785566303276,
+    "auc": 0.9988044913261271,
+    "recall_at_rules_fpr": 0.9962034739454094
+   },
+   "mcnemar_phiusiil": {
+    "rules_only_correct": 203,
+    "model_only_correct": 29525,
+    "chi2": 28919.6,
+    "p": 0.0
+   },
+   "mcnemar_realworld": {
+    "rules_only_correct": 191,
+    "model_only_correct": 8302,
+    "chi2": 7744.3,
+    "p": 0.0
+   },
+   "ms_per_url": 2.3315404632982486
+  },
+  "no_prefix|phiusiil": {
+   "phiusiil": {
+    "accuracy": 0.8918302255629997,
+    "precision": 0.9608461002785516,
+    "recall": 0.7793687778013133,
+    "f1": 0.8606448091692331,
+    "fpr": 0.023820115234705983,
+    "auc": 0.9272514033148542,
+    "recall_at_rules_fpr": 0.6603968085857516
+   },
+   "realworld": {
+    "accuracy": 0.9203728386330459,
+    "precision": 0.8336509146341463,
+    "recall": 0.9770471464019851,
+    "f1": 0.8996709774710963,
+    "fpr": 0.11226049807826945,
+    "auc": 0.9884661240811078,
+    "recall_at_rules_fpr": 0.9441191066997519
+   },
+   "mcnemar_phiusiil": {
+    "rules_only_correct": 2712,
+    "model_only_correct": 15673,
+    "chi2": 9135.8,
+    "p": 0.0
+   },
+   "mcnemar_realworld": {
+    "rules_only_correct": 7812,
+    "model_only_correct": 7478,
+    "chi2": 7.3,
+    "p": 0.007080682023187153
+   },
+   "ms_per_url": 0.7724106166764008
+  },
+  "no_prefix|phiusiil+realworld": {
+   "phiusiil": {
+    "accuracy": 0.8857841446217719,
+    "precision": 0.983559552402763,
+    "recall": 0.7459718986090518,
+    "f1": 0.8484468857409013,
+    "fpr": 0.00935222843585833,
+    "auc": 0.9212015517117664,
+    "recall_at_rules_fpr": 0.6675280660876933
+   },
+   "realworld": {
+    "accuracy": 0.9776677637842396,
+    "precision": 0.9665129583508002,
+    "recall": 0.9725806451612903,
+    "f1": 0.9695373084486661,
+    "fpr": 0.01940304905056509,
+    "auc": 0.9926644782570759,
+    "recall_at_rules_fpr": 0.9678411910669975
+   },
+   "mcnemar_phiusiil": {
+    "rules_only_correct": 1949,
+    "model_only_correct": 13911,
+    "chi2": 9020.5,
+    "p": 0.0
+   },
+   "mcnemar_realworld": {
+    "rules_only_correct": 1426,
+    "model_only_correct": 7411,
+    "chi2": 4052.1,
+    "p": 0.0
+   },
+   "ms_per_url": 0.7381975099754831
+  },
+  "host_only|phiusiil": {
+   "phiusiil": {
+    "accuracy": 0.8619932095066907,
+    "precision": 0.9370766877867599,
+    "recall": 0.7267951705147214,
+    "f1": 0.8186481521246392,
+    "fpr": 0.03660396542958821,
+    "auc": 0.9049793837456397,
+    "recall_at_rules_fpr": 0.5344630374920568
+   },
+   "realworld": {
+    "accuracy": 0.7702218716281769,
+    "precision": 0.7121702127659575,
+    "recall": 0.6229280397022332,
+    "f1": 0.6645665122435473,
+    "fpr": 0.14496563745731472,
+    "auc": 0.7717633701531332,
+    "recall_at_rules_fpr": 0.234590570719603
+   },
+   "mcnemar_phiusiil": {
+    "rules_only_correct": 5281,
+    "model_only_correct": 13312,
+    "chi2": 3468.0,
+    "p": 0.0
+   },
+   "mcnemar_realworld": {
+    "rules_only_correct": 21339,
+    "model_only_correct": 4445,
+    "chi2": 11067.9,
+    "p": 0.0
+   },
+   "ms_per_url": 0.9709599566607116
+  },
+  "host_only|phiusiil+realworld": {
+   "phiusiil": {
+    "accuracy": 0.853665474396451,
+    "precision": 0.9628056525881232,
+    "recall": 0.6850243592459224,
+    "f1": 0.8005016543040784,
+    "fpr": 0.01984833079139129,
+    "auc": 0.8947892830164375,
+    "recall_at_rules_fpr": 0.5258772858857587
+   },
+   "realworld": {
+    "accuracy": 0.9162110455258458,
+    "precision": 0.9295494149863082,
+    "recall": 0.8338957816377172,
+    "f1": 0.8791283533674283,
+    "fpr": 0.03639143293946191,
+    "auc": 0.9466598934174946,
+    "recall_at_rules_fpr": 0.7927295285359801
+   },
+   "mcnemar_phiusiil": {
+    "rules_only_correct": 4479,
+    "model_only_correct": 11134,
+    "chi2": 2835.8,
+    "p": 0.0
+   },
+   "mcnemar_realworld": {
+    "rules_only_correct": 5098,
+    "model_only_correct": 4305,
+    "chi2": 66.7,
+    "p": 3.1470739099152486e-16
+   },
+   "ms_per_url": 0.9550252300202071
+  }
+ }
+}

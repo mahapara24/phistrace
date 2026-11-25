@@ -1,0 +1,143 @@
+{
+ "n": 500,
+ "phishing": 250,
+ "invalid": 0,
+ "systems": {
+  "rules": {
+   "accuracy": 0.788,
+   "precision": 0.9931506849315068,
+   "recall": 0.58,
+   "f1": 0.7323232323232324,
+   "fpr": 0.004
+  },
+  "llm_rag": {
+   "accuracy": 0.608,
+   "precision": 0.9655172413793104,
+   "recall": 0.224,
+   "f1": 0.36363636363636365,
+   "fpr": 0.008
+  },
+  "lightgbm full|phiusiil": {
+   "accuracy": 0.996,
+   "precision": 1.0,
+   "recall": 0.992,
+   "f1": 0.9959839357429718,
+   "fpr": 0.0
+  },
+  "lightgbm no_prefix|phiusiil": {
+   "accuracy": 0.876,
+   "precision": 0.9653465346534653,
+   "recall": 0.78,
+   "f1": 0.8628318584070797,
+   "fpr": 0.028
+  },
+  "lightgbm no_prefix|phiusiil+realworld": {
+   "accuracy": 0.874,
+   "precision": 0.9895287958115183,
+   "recall": 0.756,
+   "f1": 0.8571428571428571,
+   "fpr": 0.008
+  }
+ },
+ "f1_ci95": {
+  "rules": [
+   0.6807387862796834,
+   0.7804878048780488
+  ],
+  "llm_rag": [
+   0.29152542372881357,
+   0.42990654205607476
+  ]
+ },
+ "mcnemar_rules_llm": {
+  "rules_only_correct": 117,
+  "model_only_correct": 27,
+  "chi2": 55.0,
+  "p": 1.201047166373482e-13
+ },
+ "seconds": {
+  "mean": 11.525936,
+  "median": 10.760000000000002
+ },
+ "sentences": {
+  "total": 1475,
+  "per_report": 2.95,
+  "no_citation": 41,
+  "unknown_exhibit": 24,
+  "not_retrieved": 0,
+  "cites_fired_rule": 186
+ },
+ "false_https": {
+  "http_urls": 132,
+  "urls": 65,
+  "sentences": 65
+ },
+ "retrieval_hit": {
+  "urls_with_rule": 240,
+  "hit": 169
+ },
+ "judge": {
+  "urls": 100,
+  "invalid": 0,
+  "rule": {
+   "PhishTrace": {
+    "n": 82,
+    "supported": 76,
+    "ci95": [
+     0.8494197580293276,
+     0.9660356854852388
+    ]
+   },
+   "Control (wrong exhibit)": {
+    "n": 82,
+    "supported": 17,
+    "ci95": [
+     0.13366280607539824,
+     0.3071677469431848
+    ]
+   },
+   "Retrieval only": {
+    "n": 82,
+    "supported": 37,
+    "ci95": [
+     0.34811092788121567,
+     0.5586941642885481
+    ]
+   },
+   "LLM-RAG": {
+    "n": 295,
+    "supported": 92,
+    "ci95": [
+     0.2617035157940452,
+     0.366862252827191
+    ]
+   }
+  },
+  "low_signal": {
+   "PhishTrace": {
+    "n": 72,
+    "supported": 72,
+    "ci95": [
+     0.9493470601886036,
+     1.0
+    ]
+   },
+   "Control (wrong exhibit)": {
+    "n": 72,
+    "supported": 69,
+    "ci95": [
+     0.8845053539454768,
+     0.98572945122741
+    ]
+   },
+   "Retrieval only": {
+    "n": 51,
+    "supported": 1,
+    "ci95": [
+     0.003469603253442239,
+     0.10304807675589372
+    ]
+   }
+  }
+ }
+}

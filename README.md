@@ -64,6 +64,20 @@ The sensitive variant discussed in the paper (any single rule raises an alert) i
 python scripts/evaluate.py --sensitive --out data/eval_v4_sensitive.json
 ```
 
+Baselines and robustness checks (analysis only; the detector needs none of these libraries: `numpy`, `scipy`, `scikit-learn`, `lightgbm`, `openpyxl`, and a local Ollama server with `llama3.2` and `phi3`):
+
+```bash
+python scripts/robustness.py --score     # v1-v4 per-URL results, intervals, McNemar, ablation, sensitivity
+python scripts/baseline_lightgbm.py      # lexical LightGBM on the same splits
+python scripts/baseline_llm_rag.py --limit 500   # Llama 3.2 3B with retrieval, 500 URLs
+python scripts/judge_support.py          # automatic sentence-support check
+python scripts/summarize_llm.py          # writes data/eval_llm_rag.json
+python scripts/make_audit.py             # blinded audit workbooks for two human raters
+python scripts/make_audit.py --score     # agreement and support rates, after both raters finish
+```
+
+The rule sets v1 to v3 are in `legacy/`. They reproduce the PhiUSIIL counts in `data/eval_baseline.json`, `data/eval_v2.json` and `data/eval_v3.json`.
+
 Held-out test results (v4, alert point): PhiUSIIL accuracy 0.813, precision 0.998, recall 0.566, F1 0.722, FPR 0.075%, ROC-AUC 0.954. Pooled OpenPhish + Phishing.Database + URLhaus against Tranco top-100k: accuracy 0.923, precision 0.986, recall 0.802, F1 0.884, false alarms 0.65%. v4 keeps the 22 rules of v3 and widens their lists (hosting platforms, shorteners, brands); see the Method page.
 
 Testing screenshots: [`screenshots/`](screenshots/README.md) holds full PhishTrace reports for hand-picked examples (not a detection test): 15 real phishing URLs plus the classroom example, 2 malware URLs, 5 safe sites, and one three-mode comparison, with a results table.

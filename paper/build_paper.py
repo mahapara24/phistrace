@@ -7,7 +7,8 @@ Body Text, table head/copy, figure caption, references) are reused, so the
 section, table, figure, and reference numbers come from the template's
 numbering. Citations are written as {key} and numbered in order of first use.
 All numbers come from data/eval_results.json (v4), data/eval_v3.json, data/eval_v2.json,
-data/eval_v4_sensitive.json, and data/eval_baseline.json. List sizes come from app/corpus.py.
+data/eval_v4_sensitive.json, data/eval_baseline.json,
+data/eval_robustness.json, data/eval_lightgbm.json, and data/eval_llm_rag.json. List sizes come from app/corpus.py.
 """
 
 from __future__ import annotations
@@ -60,6 +61,13 @@ REFS = {
     "tranco": "V. Le Pochat, T. Van Goethem, S. Tajalizadehkhoob, M. Korczyński, and W. Joosen, “Tranco: A research-oriented top sites ranking hardened against manipulation,” in Proc. 26th Annu. Netw. Distrib. Syst. Secur. Symp. (NDSS), Feb. 2019, doi: 10.14722/ndss.2019.23386.",
     "phishdb": "M. Krog, N. Chababy, and Phishing.Database contributors, “Phishing.Database,” GitHub repository, version V.2026-10-02.17. Accessed: Nov. 4, 2026. [Online]. Available: https://github.com/Phishing-Database/Phishing.Database",
 }
+REFS.update({
+    "lightgbm": "G. Ke et al., “LightGBM: A highly efficient gradient boosting decision tree,” in Proc. Adv. Neural Inf. Process. Syst. (NIPS), vol. 30, 2017, pp. 3146–3154.",
+    "phi3": "M. Abdin et al., “Phi-3 technical report: A highly capable language model locally on your phone,” 2024, arXiv:2404.14219.",
+    "llama": "A. Grattafiori et al., “The Llama 3 herd of models,” 2024, arXiv:2407.21783.",
+    "mcnemar": "Q. McNemar, “Note on the sampling error of the difference between correlated proportions or percentages,” Psychometrika, vol. 12, no. 2, pp. 153–157, Jun. 1947, doi: 10.1007/BF02295996.",
+    "bm25": "S. Robertson and H. Zaragoza, “The probabilistic relevance framework: BM25 and beyond,” Found. Trends Inf. Retr., vol. 3, no. 4, pp. 333–389, 2009, doi: 10.1561/1500000019.",
+})
 _order: list[str] = []
 
 
@@ -79,6 +87,9 @@ def cite(text: str) -> str:
 
 
 # ----------------------------------------------------------------- numbers
+ROB = json.loads((DATA / "eval_robustness.json").read_text())
+LGB = json.loads((DATA / "eval_lightgbm.json").read_text())
+LLM = json.loads((DATA / "eval_llm_rag.json").read_text())
 V2 = json.loads((DATA / "eval_v2.json").read_text())
 V3 = json.loads((DATA / "eval_v3.json").read_text())
 SENS = json.loads((DATA / "eval_v4_sensitive.json").read_text())
@@ -116,6 +127,40 @@ RULES = {r["id"]: r for r in CUR["phiusiil"]["rule_rates_test"]}
 
 def n(x: int) -> str:
     return f"{x:,}"
+
+
+def ci(pair, digits: int = 3) -> str:
+    return f"{pair[0]:.{digits}f}–{pair[1]:.{digits}f}"
+
+
+def signed(x: float, digits: int = 3) -> str:
+    text = f"{x:+.{digits}f}".replace("-", "−")
+    return "0" if float(f"{x:.{digits}f}") == 0 else text
+
+
+def pval(p: float) -> str:
+    return "< 0.001" if p < 0.001 else f"{p:.3f}"
+
+
+PC = ROB["phiusiil_ci"]
+RC = ROB["realworld_ci"]
+MP = ROB["mcnemar_phiusiil"]
+MR = ROB["mcnemar_realworld"]
+AB = {a["id"]: a for a in ROB["ablation"]}
+WS = ROB["weight_schemes"]
+MISS = ROB["missed"]
+LM = LGB["models"]
+LF, LFR = LM["full|phiusiil"], LM["full|phiusiil+realworld"]
+LN, LNR = LM["no_prefix|phiusiil"], LM["no_prefix|phiusiil+realworld"]
+LH, LHR = LM["host_only|phiusiil"], LM["host_only|phiusiil+realworld"]
+SHORT = LGB["shortcuts"]
+LS = LLM["systems"]
+SN = LLM["sentences"]
+JG = LLM["judge"]
+JR = JG["rule"]
+def jshare(name, digits=0):
+    return pct(JR[name]["supported"] / JR[name]["n"], digits)
+HOST = LGB["rules"]["realworld_host_only"]
 
 
 # ----------------------------------------------------------------- XML helpers
@@ -166,36 +211,57 @@ def equation(text: str, number: int) -> str:
     return para("equation", runs)
 
 
-def table(caption: str, header: list[str], rows: list[list[str]], widths_pt: list[float], note: str = "") -> str:
+def table(caption: str, header: list[str], rows: list[list[str]], widths_pt: list[float], note: str = "", left: int = 1,
+          size: int = 16, rule_after: tuple[int, ...] = (), groups: tuple[tuple[str, int], ...] = (), left_cols: tuple[int, ...] = ()) -> str:
+    """Three horizontal rules and no vertical ones. The first `left` columns are left-aligned, the rest right-aligned."""
     grid = "".join(f'<w:gridCol w:w="{int(w * 20)}"/>' for w in widths_pt)
-    borders = "".join(
-        f'<w:{side} w:val="single" w:sz="2" w:space="0" w:color="auto"/>'
-        for side in ("top", "start", "bottom", "end", "insideH", "insideV")
-    )
+    thick = 'w:val="single" w:sz="8" w:space="0" w:color="auto"'
+    thin = 'w:val="single" w:sz="4" w:space="0" w:color="auto"'
+    last = len(rows) - 1
 
-    def cell(text: str, width: float, head: bool) -> str:
+    def cell(text: str, width: float, head: bool, col: int, borders: str) -> str:
         style = "tablecolhead" if head else "tablecopy"
-        jc = '<w:jc w:val="center"/>' if head else ""
+        jc = f'<w:jc w:val="{"start" if col < left or col in left_cols else "end"}"/>'
+        edge = f"<w:tcBorders>{borders}</w:tcBorders>" if borders else ""
+        keep = "<w:keepNext/>"
         return (
-            f'<w:tc><w:tcPr><w:tcW w:w="{width}pt" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>'
-            f'<w:p><w:pPr><w:pStyle w:val="{style}"/><w:keepNext/>{jc}</w:pPr>{rich(text)}</w:p></w:tc>'
+            f'<w:tc><w:tcPr><w:tcW w:w="{width}pt" w:type="dxa"/>{edge}<w:vAlign w:val="center"/></w:tcPr>'
+            f'<w:p><w:pPr><w:pStyle w:val="{style}"/>{keep}<w:spacing w:before="1pt" w:after="1pt"/>{jc}</w:pPr>{rich(text, size=size, bold=head)}</w:p></w:tc>'
         )
 
-    def row(cells: list[str], head: bool) -> str:
+    def row(cells: list[str], head: bool, index: int = -1) -> str:
         trpr = '<w:trPr><w:cantSplit/><w:tblHeader/><w:jc w:val="center"/></w:trPr>' if head else '<w:trPr><w:cantSplit/><w:jc w:val="center"/></w:trPr>'
-        return "<w:tr>" + trpr + "".join(cell(c, w, head) for c, w in zip(cells, widths_pt)) + "</w:tr>"
+        borders = (f"<w:bottom {thin}/>" if groups else f"<w:top {thick}/><w:bottom {thin}/>") if head else ""
+        if not head and index == last:
+            borders = f"<w:bottom {thick}/>"
+        elif not head and index in rule_after:
+            borders = f"<w:bottom {thin}/>"
+        return "<w:tr>" + trpr + "".join(cell(c, w, head, i, borders) for i, (c, w) in enumerate(zip(cells, widths_pt))) + "</w:tr>"
+
+    def group_row() -> str:
+        cells, at = "", 0
+        for text, span in groups:
+            edge = f"<w:top {thick}/>" + (f"<w:bottom {thin}/>" if text else "")
+            cells += (
+                f'<w:tc><w:tcPr><w:tcW w:w="{sum(widths_pt[at:at + span])}pt" w:type="dxa"/><w:gridSpan w:val="{span}"/><w:tcBorders>{edge}</w:tcBorders></w:tcPr>'
+                f'<w:p><w:pPr><w:pStyle w:val="tablecolhead"/><w:keepNext/><w:spacing w:before="1pt" w:after="1pt"/><w:jc w:val="center"/></w:pPr>{rich(text, size=size, bold=True)}</w:p></w:tc>'
+            )
+            at += span
+        return '<w:tr><w:trPr><w:cantSplit/><w:tblHeader/><w:jc w:val="center"/></w:trPr>' + cells + "</w:tr>"
 
     tbl = (
-        f'<w:tbl><w:tblPr><w:tblW w:w="0pt" w:type="dxa"/><w:jc w:val="center"/><w:tblBorders>{borders}</w:tblBorders>'
-        '<w:tblLayout w:type="fixed"/><w:tblCellMar><w:start w:w="2.5pt" w:type="dxa"/><w:end w:w="2.5pt" w:type="dxa"/></w:tblCellMar>'
-        '<w:tblLook w:firstRow="1" w:lastRow="0" w:firstColumn="0" w:lastColumn="0" w:noHBand="0" w:noVBand="1"/></w:tblPr>'
-        f"<w:tblGrid>{grid}</w:tblGrid>" + row(header, True) + "".join(row(r, False) for r in rows) + "</w:tbl>"
+        '<w:tbl><w:tblPr><w:tblW w:w="0pt" w:type="dxa"/><w:jc w:val="center"/>'
+        '<w:tblLayout w:type="fixed"/><w:tblCellMar><w:start w:w="1.5pt" w:type="dxa"/><w:end w:w="1.5pt" w:type="dxa"/></w:tblCellMar>'
+        '<w:tblLook w:firstRow="1" w:lastRow="0" w:firstColumn="0" w:lastColumn="0" w:noHBand="1" w:noVBand="1"/></w:tblPr>'
+        f"<w:tblGrid>{grid}</w:tblGrid>" + (group_row() if groups else "") + row(header, True) + "".join(row(r, False, i) for i, r in enumerate(rows)) + "</w:tbl>"
     )
     out = para("tablehead", run(caption), "<w:keepNext/>") + tbl  # keep the caption on the table's page
-    if note:
-        out += para("tablefootnote", rich(note))
+    if note:  # 8-pt note without the template's automatic a, b, c letters
+        ppr = ('<w:numPr><w:ilvl w:val="0"/><w:numId w:val="0"/></w:numPr><w:spacing w:before="4pt" w:after="10pt"/>'
+               '<w:ind w:start="0pt" w:firstLine="0pt"/><w:jc w:val="both"/>')
+        out += para("tablefootnote", rich(note, size=16), ppr)
     else:
-        out += '<w:p><w:pPr><w:spacing w:after="4pt"/></w:pPr></w:p>'
+        out += '<w:p><w:pPr><w:spacing w:after="6pt"/></w:pPr></w:p>'
     return out
 
 
@@ -235,20 +301,21 @@ AUTHOR_LINES = [
     ("mahapara2424@gmail.com", False),
 ]
 ABSTRACT = (
-    "Most phishing and malware URL detectors return a label and stop there. They do not collect the evidence behind the label "
-    "or record how the case was investigated. This paper presents PhishTrace, which detects malicious URLs from the URL text and "
-    "then investigates each decision without any trained or generative model. Twenty-two weighted rules produce a risk score "
-    "and a verdict. The score decides how deep the investigation goes. A chain of fixed agents consults brand and suffix "
-    "registries, pulls tagged exhibits from a local knowledge base, and checks every candidate sentence against them. Only "
-    "sentences that pass this check reach the report. On phishing and malware feeds pooled against the 100,000 most popular "
-    f"domains, the final rule set reaches an accuracy of {f3(rw4['alert']['accuracy'])} and a precision of "
-    f"{f3(rw4['alert']['precision'])}. Its false alarm rate of {pct(rw4['alert']['fpr'], 2)} percent is "
-    f"{rw2['alert']['fpr'] / rw4['alert']['fpr']:.1f} times lower than that of the first data-tuned version. On held-out "
-    f"PhiUSIIL data, precision is {f3(t4['alert']['precision'])} and ROC-AUC is {f3(t4['roc_auc'])}, but recall is only "
-    f"{f3(t4['alert']['recall'])}: many phishing URLs show no warning sign in their text. The agentic chain publishes no "
-    "unsupported sentence and runs every required check. A single-retrieval baseline, by contrast, leaves "
-    f"{pct(ch['retrieval']['unsupported_rate'], 0)} percent of its sentences unsupported. Each investigation takes well under "
-    "a millisecond."
+    "Most phishing and malware URL detectors return a label and stop there, without the evidence behind it. This paper presents "
+    "PhishTrace, which detects malicious URLs from the URL text and then investigates each decision without any trained or "
+    "generative model. Twenty-two weighted rules produce a score and a verdict, and fixed agents publish only the sentences that "
+    "a tagged exhibit covers. "
+    f"On {n(N_TEST)} held-out PhiUSIIL URLs, precision is {f3(t4['alert']['precision'])}, recall is {f3(t4['alert']['recall'])} "
+    f"(95% CI {ci(PC['v4']['alert']['ci95']['recall'])}), and F1 is {f3(t4['alert']['f1'])}. On phishing and malware feeds pooled "
+    f"against popular domains, F1 is {f3(rw4['alert']['f1'])} with {pct(rw4['alert']['fpr'], 2)} percent false alarms. The cost of "
+    "this audit-first design is measured on the same splits. A lexical LightGBM classifier reaches an F1 of "
+    f"{f3(LF['phiusiil']['f1'])} on PhiUSIIL but {f3(LN['phiusiil']['f1'])} once the scheme and www prefix, a collection artifact, "
+    f"are removed, and {f3(LNR['realworld']['f1'])} on the pooled lists when it is trained on both sources. A retrieval-augmented "
+    f"pipeline around a 3-billion-parameter open model reaches an F1 of {f3(LS['llm_rag']['f1'])} on {LLM['n']} URLs, against "
+    f"{f3(LS['rules']['f1'])} for the rules. Free hosting and file download carry most of the recall, and the alert verdict does not "
+    "change when the weights move by 25 percent. Full sentence support holds by construction; a separate judge model finds the "
+    f"cited evidence on topic for {jshare('PhishTrace')} percent of PhishTrace's rule sentences, {jshare('Retrieval only')} percent "
+    f"with plain retrieval, {jshare('LLM-RAG')} percent for the language model, and {jshare('Control (wrong exhibit)')} percent of wrong-exhibit controls."
 )
 KEYWORDS = "phishing detection, malicious URL, rule-based detection, retrieval-augmented generation, agents, explainability, verification"
 
@@ -279,7 +346,8 @@ S(body(
     "transparent, deterministic components. No classifier is trained and no generative model is called. The detector is a "
     "table of weighted rules that an analyst can read. The agents are fixed functions that call tools. The verifier is a "
     "separate function, and it withholds any sentence that no exhibit covers. This design puts auditability ahead of raw "
-    "accuracy. The evaluation asks what that choice costs in detection quality, on benchmark data and on live feeds."
+    "accuracy. The evaluation measures what that choice costs in detection quality against a trained classifier and a "
+    "language-model pipeline, on benchmark data and on live feeds."
 ))
 S(body("The contributions of this paper are as follows."))
 for item in (
@@ -288,9 +356,10 @@ for item in (
     "per-victim hex folders), one-edit typosquat matching, and mixed-script homograph checks, produce a score and a three-way verdict.",
     "*A score-driven agentic investigation chain.* The score selects which registries and retrievals run. A separate verifier "
     "keeps only the sentences that an exhibit covers, and the report contains nothing else.",
-    "*A reproducible evaluation on benchmark and real-world data.* The detector is measured on hash-based held-out splits of "
-    "PhiUSIIL {prasad}, two phishing feeds {openphish,phishdb}, a malware feed {urlhaus}, and the Tranco top sites {tranco}, and the "
-    "chain is compared with rules-only and retrieval-only baselines on unsupported-claim rate, evidence support, completeness, and latency.",
+    "*A reproducible evaluation that prices the design.* The detector is measured on hash-based held-out splits of "
+    "PhiUSIIL {prasad}, two phishing feeds {openphish,phishdb}, a malware feed {urlhaus}, and the Tranco top sites {tranco}, "
+    "with confidence intervals, McNemar tests, rule ablation, and sensitivity analysis. It is compared with a lexical LightGBM classifier "
+    "and an open-weight language-model pipeline, and the chain is compared with rules-only and retrieval-only baselines.",
 ):
     S(para("BodyText", rich(item), IND))
 
@@ -318,42 +387,41 @@ S(body(
     "Nicklas et al. {nicklas} fed retrieved context to open language models to classify phishing emails. Retrieval enriches "
     "the input there, yet the system still answers with a class. Li et al. {li26} went further and used several RAG agents "
     "to explain what a phishing page is trying to achieve. Neither study links a URL detector to retrieved evidence and then "
-    "to a checker that limits what the final report is allowed to say. Table I sets the two studies beside earlier detectors "
-    "and this work."
+    "to a checker that limits what the final report is allowed to say. Table I lists the data and the results these studies "
+    "report. The tasks and the data sets differ, so the numbers show the range in the literature and are not a ranking; "
+    "Section VI-D compares methods on identical splits."
 ))
 S(table(
-    "Comparison with Prior Work",
-    ["Study", "Detector", "Retrieval", "Verifier", "Report"],
+    "Reported Results of Prior Work",
+    ["Study", "Data", "Acc.", "F1", "FPR", "Time", "R / V"],
     [
-        [cite("Prasad {prasad}"), "ML", "No", "No", "No"],
-        [cite("Sahingoz {sahingoz}"), "ML", "No", "No", "No"],
-        [cite("Nicklas {nicklas}"), "LLM", "Yes", "No", "Label"],
-        [cite("Li {li26}"), "LLM (intent)", "Yes", "Partial‡", "Text"],
-        ["This work", "Rules", "Yes", "Yes", "Verified"],
+        [cite("CANTINA {cantina}"), "200 pages", "—", "—", "0.010", "—", "N / N"],
+        [cite("Sahingoz {sahingoz}"), "73,575 URLs", "0.980", "—", "—", "—", "N / N"],
+        [cite("Prasad {prasad}"), "235,795 URLs", "0.998", "—", "—", "—", "N / N"],
+        [cite("Nicklas {nicklas}"), "5,800 emails", "0.962", "0.962", "0.023", "—", "Y / N"],
+        [cite("Li {li26}"), "2,063 pages", "0.892", "0.821", "—", "—", "Y / P"],
+        ["This work, v4", f"{n(N_TEST)} URLs", f3(t4["alert"]["accuracy"]), f3(t4["alert"]["f1"]), f"{t4['alert']['fpr']:.4f}", f"{CUR['phiusiil']['ms_per_url']:.1f} ms", "Y / Y"],
     ],
-    [62, 44, 44, 44, 46],
-    "‡Combines the agents' outputs, but no step tests each report sentence against the retrieved text. Li et al. start from pages already known to be phishing and label their intent; they do not detect phishing.",
+    [58, 56, 26, 26, 30, 28, 24],
+    "R / V: retrieval / separate verifier (Y yes, N no, P partial). A dash marks a value not given in the sources consulted: the abstract "
+    "and data records for Sahingoz and Prasad, the full text for the others. CANTINA reports a true positive rate of 0.89. Prasad reports 0.992 for fully "
+    "incremental training. Nicklas is Llama 3.1 70B with retrieval; its FPR is one minus the reported specificity. Li classifies the "
+    "intent of known phishing pages (GPT-4o, micro-averaged) and does not detect phishing.",
+    left=2, size=15,
 ))
 
-S(h1("Research Questions and Objectives"))
-S(body(
-    "The study follows one chain, detection then retrieval then agents, and asks one question at each link. The questions "
-    "and objectives of the proposal were revised so that detection uses transparent rules instead of trained classifiers."
-))
+S(h1("Research Questions"))
+S(body("The study follows one chain, detection then retrieval then agents, and asks four questions."))
 for label, text in (
     ("RQ1.", "How effectively can a transparent rule-based detector separate phishing and malware URLs from legitimate ones, "
              "so that its score can serve as the initial risk signal?"),
     ("RQ2.", "Does retrieved cybersecurity evidence support and explain that signal better than the rule output alone?"),
     ("RQ3.", "Do agents that choose tools from the score and verify evidence separately from the report reduce unsupported "
              "claims and increase investigation completeness compared with non-agentic retrieval?"),
+    ("RQ4.", "What detection quality does the audit-first design give up against a trained lexical classifier and an open-weight "
+             "language-model pipeline on the same splits?"),
 ):
     S(para("BodyText", run(label + " ", bold=True) + rich(text), IND))
-S(body(
-    "*RO1* builds and tunes the rule detector on development splits and measures it on held-out benchmark and real-world data. "
-    "*RO2* builds a tagged knowledge base and measures whether retrieved exhibits cover each finding. *RO3* implements the detect, "
-    "plan, tool, verify, and report agents and compares three modes on the metrics in Section IV-G."
-))
-
 S(h1("Methodology"))
 S(body(
     "Fig. 1 shows the pipeline. The system reads only the URL string. It never opens the page, follows a redirect, or "
@@ -403,8 +471,9 @@ S(table(
         ["Machine label†", "14", "Long label with six consonants in a row or mixed digits"],
         ["Lure words", "6 each", "Account words; parcel-scam words in the host; cap 18"],
     ],
-    [66, 34, 140],
-    "†Rules added after v1. Nine smaller rules (long URL, very long URL, depth, hyphens, digits, encoding, double slash, explicit HTTP, hex folder†) weigh 8 to 12.",
+    [72, 36, 132],
+    "† Rule added after v1. Nine smaller rules (long URL, very long URL, depth, hyphens, digits, encoding, double slash, explicit HTTP, hex folder†) weigh 8 to 12.",
+    left=3,
 ))
 S(h2("Verdict Decision"))
 S(body(
@@ -437,10 +506,19 @@ S(body(
 ))
 S(h2("Baselines"))
 S(body(
-    "Both baselines start from the same detector output. *Rules only* writes one sentence per fired rule, adds the class "
-    "label, and stops; it retrieves nothing and checks nothing. *Retrieval only* searches once using the words in the URL, "
-    "pins the same search results to every sentence, and publishes the lot unchecked. It stands in for a one-step RAG "
-    "pipeline."
+    "Two baselines share the detector output and isolate the chain. *Rules only* writes one sentence per fired rule, adds the class "
+    "label, and stops. *Retrieval only* searches once using the words in the URL, pins the same search results to every sentence, and "
+    "publishes the lot unchecked."
+))
+S(body(
+    "Two more baselines replace the detector. The first is a lexical LightGBM classifier {lightgbm} (300 trees, 63 leaves, learning rate "
+    "0.08) on 26 URL features such as lengths, character counts, entropy, suffix, and account words, plus three for the scheme and "
+    "www. It is trained on the PhiUSIIL development split "
+    f"({n(LGB['n']['train_phiusiil'])} URLs), alone or with {n(LGB['n']['train_extra'])} URLs from the real-world development splits, and "
+    "cut at a probability of 0.5. Three views are tested: the *full* URL, the URL *without prefix* (scheme and leading www removed), and the "
+    "*host only*. The second is a retrieval-augmented pipeline with Llama 3.2 3B {llama}, run locally at temperature 0. The model names the "
+    "URL features to check, those words and the words of the URL form a BM25 query {bm25} over the same exhibits, and the model then "
+    "returns a label and a report of two or three sentences, each citing exhibits. Nothing checks its citations."
 ))
 S(h2("Evaluation Metrics"))
 S(body(
@@ -452,6 +530,12 @@ S(body(
     "required checks that actually ran. The checks come from a nine-item list, and which items are required depends on the "
     "score; for example, the brand registry is required whenever a brand token is present. Latency is the wall-clock time "
     "of one investigation."
+))
+S(body(
+    "Intervals are 95 percent. PhiUSIIL and pooled intervals are percentile bootstraps with 10,000 resamples drawn within each class; "
+    "single rates use the Wilson interval. Two detectors on the same URLs are compared with McNemar's test {mcnemar} with continuity "
+    "correction. The v1 to v3 rule sets were rerun on every test URL and reproduce the counts of the original runs. The ablation removes one rule at a time "
+    "from v4 and decides every URL again; the sensitivity analysis moves the thresholds and the weights. Neither was used to change v4."
 ))
 
 S(h1("Experimental Setup"))
@@ -470,16 +554,17 @@ S(body(
 ))
 S(table(
     "Evaluation Data (Test Splits)",
-    ["Set", "Malicious", "Safe", "Use"],
+    ["Set", "Use", "Malicious", "Safe"],
     [
-        ["PhiUSIIL", n(t4["phishing_n"]), n(t4["legitimate_n"]), "Benchmark"],
-        ["OpenPhish", n(ext4["openphish"]["n"]), "0", "Phishing recall"],
-        ["Phishing.Database", n(ext4["phishing_database"]["n"]), "0", "Phishing recall"],
-        ["URLhaus", n(ext4["urlhaus"]["n"]), "0", "Malware recall"],
-        ["Tranco top-100k", "0", n(ext4["tranco"]["n"]), "False alarms"],
+        ["PhiUSIIL", "Benchmark", n(t4["phishing_n"]), n(t4["legitimate_n"])],
+        ["OpenPhish", "Phishing recall", n(ext4["openphish"]["n"]), "0"],
+        ["Phishing.Database", "Phishing recall", n(ext4["phishing_database"]["n"]), "0"],
+        ["URLhaus", "Malware recall", n(ext4["urlhaus"]["n"]), "0"],
+        ["Tranco top-100k", "False alarms", "0", n(ext4["tranco"]["n"])],
     ],
-    [70, 50, 50, 70],
+    [76, 68, 50, 46],
     f"PhiUSIIL development split: {n(d4['phishing_n'])} phishing and {n(d4['legitimate_n'])} legitimate URLs.",
+    left=2,
 ))
 S(h2("Rule Development Protocol"))
 S(body(
@@ -502,8 +587,9 @@ S(body(
 S(h2("Implementation"))
 S(body(
     "PhishTrace is written in Python 3 with FastAPI for the web interface and only the standard library for detection, "
-    "retrieval, and agents. No machine-learning, embedding, or language-model library is installed. The evaluation script "
-    "and the investigation chain run in a single process on a laptop CPU."
+    "retrieval, and agents. The system itself needs no machine-learning or language-model library; LightGBM, NumPy, SciPy, and the local "
+    "model server are used only to run the baselines and the statistics. All timings come from one laptop with a 4-GB GPU, which "
+    "only the language model uses."
 ))
 
 S(h1("Results"))
@@ -517,25 +603,45 @@ S(body(
     f"recovers most of that recall ({f3(t4['alert']['recall'])}) and raises accuracy from {f3(t3['alert']['accuracy'])} to "
     f"{f3(t4['alert']['accuracy'])} and F1 from {f3(t3['alert']['f1'])} to {f3(t4['alert']['f1'])}, at a false positive rate "
     f"of {pct(t4['alert']['fpr'], 3)} percent and a precision of {f3(t4['alert']['precision'])}. ROC-AUC is "
-    f"{f3(t4['roc_auc'])} in v4 against {f3(t1['roc_auc'])} in v1 (Fig. 2). The development F1 of "
+    f"{f3(t4['roc_auc'])} in v4 against {f3(t1['roc_auc'])} in v1. The development F1 of "
     f"{f3(d4['alert']['f1'])} is close to the test F1 of {f3(t4['alert']['f1'])}, which suggests that the rule changes did "
     "not overfit the development split."
 ))
 S(table(
-    "Detection on the PhiUSIIL Test Split",
-    ["Rules", "Point", "Acc.", "Prec.", "Rec.", "F1", "FPR"],
+    "Detection on the PhiUSIIL Test Split (95% Interval for F1)",
+    ["Rules", "Point", "Acc.", "Prec.", "Rec.", "F1", "F1 interval", "FPR"],
     [
-        [tag, point.capitalize(), f3(t[point]["accuracy"]), f3(t[point]["precision"]), f3(t[point]["recall"]), f3(t[point]["f1"]), f"{t[point]['fpr']:.4f}"]
+        [tag, point.capitalize(), f3(t[point]["accuracy"]), f3(t[point]["precision"]), f3(t[point]["recall"]), f3(t[point]["f1"]), ci(PC[tag][point]["ci95"]["f1"]), f"{t[point]['fpr']:.4f}"]
         for tag, t in (("v1", t1), ("v2", t2), ("v3", t3), ("v4", t4))
         for point in ("strict", "alert")
     ],
-    [26, 32, 36, 36, 36, 36, 38],
-    f"ROC-AUC / PR-AUC: v1 {f3(t1['roc_auc'])} / {f3(t1['pr_auc'])}; v2 {f3(t2['roc_auc'])} / {f3(t2['pr_auc'])}; v3 {f3(t3['roc_auc'])} / {f3(t3['pr_auc'])}; v4 {f3(t4['roc_auc'])} / {f3(t4['pr_auc'])}. n = {n(N_TEST)}.",
+    [26, 28, 28, 28, 28, 28, 50, 30],
+    f"ROC-AUC / PR-AUC: v1 {f3(t1['roc_auc'])} / {f3(t1['pr_auc'])}; v2 {f3(t2['roc_auc'])} / {f3(t2['pr_auc'])}; v3 {f3(t3['roc_auc'])} / {f3(t3['pr_auc'])}; v4 {f3(t4['roc_auc'])} / {f3(t4['pr_auc'])}. v4 alert intervals: accuracy {ci(PC['v4']['alert']['ci95']['accuracy'])}, precision {ci(PC['v4']['alert']['ci95']['precision'])}, recall {ci(PC['v4']['alert']['ci95']['recall'])}, FPR {ci(PC['v4']['alert']['ci95']['fpr'], 4)}. n = {n(N_TEST)}.",
+    left=2, rule_after=(1, 3, 5),
 ))
-S(figure(HERE / "fig2_v1_v2.png", "Alert-point accuracy, precision, recall, and F1 score with ROC-AUC on the PhiUSIIL test split for the four rule sets."))
+S(body(
+    "Table V tests these changes on the same URLs. Every step changes the result significantly, and the direction depends on the class: v3 loses "
+    f"{n(MP['v2-v3']['phishing']['only_first_correct'])} phishing URLs that v2 caught and clears "
+    f"{n(MP['v2-v3']['legitimate']['only_second_correct'])} of its false alarms, and v4 regains {n(MP['v3-v4']['phishing']['only_second_correct'])} "
+    "phishing URLs without losing any. Against v2, however, v4 is not more accurate on PhiUSIIL "
+    f"(p = {MP['v2-v4']['all']['p']:.2f}, with overlapping F1 intervals). It misses slightly more phishing and raises far fewer false alarms. On the "
+    "pooled real-world lists, v4 is better than every earlier version."
+))
+S(table(
+    "McNemar Tests Between Rule Sets (Alert Point)",
+    ["Pair", "First", "Second", "χ²", "p", "First", "Second", "χ²", "p"],
+    [
+        [pair.replace("-", "–"), n(MP[pair]["all"]["only_first_correct"]), n(MP[pair]["all"]["only_second_correct"]), f"{MP[pair]['all']['chi2']:,.0f}" if MP[pair]["all"]["chi2"] > 10 else f"{MP[pair]['all']['chi2']:.1f}", pval(MP[pair]["all"]["p"]).replace("< ", "<"),
+         n(MR[pair]["all"]["only_first_correct"]), n(MR[pair]["all"]["only_second_correct"]), f"{MR[pair]['all']['chi2']:,.0f}", pval(MR[pair]["all"]["p"]).replace("< ", "<")]
+        for pair in ("v1-v2", "v2-v3", "v3-v4", "v2-v4", "v1-v4")
+    ],
+    [32, 25, 31, 29, 28, 25, 27, 26, 28],
+    f"n = {n(N_TEST)} for PhiUSIIL and {n(LGB['n']['realworld'])} for the pooled lists. First / second: URLs that only the first or only the second rule set of the pair decides correctly. Five pairs are tested; a Bonferroni limit of 0.01 leads to the same conclusions.",
+    size=15, groups=(("", 1), ("PhiUSIIL", 4), ("Real-world lists", 4)),
+))
 S(h2("Real-World Phishing, Malware, and Popular Sites (RQ1)"))
 S(body(
-    "Table V and Fig. 3 report the real-world lists at the alert point. On the Tranco top 100,000 domains, v2 raises an alert "
+    "Table VI and Fig. 2 report the real-world lists at the alert point. On the Tranco top 100,000 domains, v2 raises an alert "
     f"on {pct(ext2['tranco']['alert_fpr'])} percent of popular sites, mostly because of a single abused suffix, a digit-heavy name, "
     f"or a brand token on brand infrastructure. Version 3 brings this down to {pct(ext3['tranco']['alert_fpr'])} percent, a "
     f"{ext2['tranco']['alert_fpr'] / ext3['tranco']['alert_fpr']:.1f}-fold reduction. URLhaus recall is "
@@ -554,50 +660,151 @@ S(body(
 ))
 S(table(
     "Real-World Lists at the Alert Point",
-    ["Measure", "v2", "v3", "v4"],
+    ["Measure", "v2", "v3", "v4", "v4 interval"],
     [
-        [label, fmt(a), fmt(b), fmt(c)]
-        for label, fmt, (a, b, c) in [
-            ("OpenPhish recall", f3, [e["openphish"]["alert_recall"] for e in (ext2, ext3, ext4)]),
-            ("Phishing.Database recall", f3, [e["phishing_database"]["alert_recall"] for e in (ext2, ext3, ext4)]),
-            ("URLhaus recall", f3, [e["urlhaus"]["alert_recall"] for e in (ext2, ext3, ext4)]),
-            ("URLhaus strict recall", f3, [e["urlhaus"]["strict_recall"] for e in (ext2, ext3, ext4)]),
-            ("Tranco false alarms (%)", lambda x: pct(x, 2), [e["tranco"]["alert_fpr"] for e in (ext2, ext3, ext4)]),
-            ("Pooled accuracy", f3, [r["alert"]["accuracy"] for r in (rw2, rw3, rw4)]),
-            ("Pooled precision", f3, [r["alert"]["precision"] for r in (rw2, rw3, rw4)]),
-            ("Pooled recall", f3, [r["alert"]["recall"] for r in (rw2, rw3, rw4)]),
-            ("Pooled F1", f3, [r["alert"]["f1"] for r in (rw2, rw3, rw4)]),
+        [label, fmt(a), fmt(b), fmt(c), iv]
+        for label, fmt, (a, b, c), iv in [
+            ("OpenPhish recall", f3, [e["openphish"]["alert_recall"] for e in (ext2, ext3, ext4)], ci(RC["v4"]["openphish"]["ci95"])),
+            ("Phishing.Database recall", f3, [e["phishing_database"]["alert_recall"] for e in (ext2, ext3, ext4)], ci(RC["v4"]["phishdb"]["ci95"])),
+            ("URLhaus recall", f3, [e["urlhaus"]["alert_recall"] for e in (ext2, ext3, ext4)], ci(RC["v4"]["urlhaus"]["ci95"])),
+            ("URLhaus strict recall", f3, [e["urlhaus"]["strict_recall"] for e in (ext2, ext3, ext4)], "—"),
+            ("Tranco false alarms (%)", lambda x: pct(x, 2), [e["tranco"]["alert_fpr"] for e in (ext2, ext3, ext4)], ci([100 * v for v in RC["v4"]["tranco"]["ci95"]], 2)),
+            ("Pooled accuracy", f3, [r["alert"]["accuracy"] for r in (rw2, rw3, rw4)], ci(RC["v4"]["pooled"]["ci95"]["accuracy"])),
+            ("Pooled precision", f3, [r["alert"]["precision"] for r in (rw2, rw3, rw4)], ci(RC["v4"]["pooled"]["ci95"]["precision"])),
+            ("Pooled recall", f3, [r["alert"]["recall"] for r in (rw2, rw3, rw4)], ci(RC["v4"]["pooled"]["ci95"]["recall"])),
+            ("Pooled F1", f3, [r["alert"]["f1"] for r in (rw2, rw3, rw4)], ci(RC["v4"]["pooled"]["ci95"]["f1"])),
         ]
     ],
-    [105, 45, 45, 45],
+    [96, 32, 32, 32, 52],
     f"Pooled: {n(rw4['malicious_n'])} malicious URLs (OpenPhish, Phishing.Database, URLhaus) against {n(rw4['safe_n'])} Tranco domains.",
 ))
 S(figure(HERE / "fig3_realworld.png", "Alert-point recall on the three malicious lists and false alarms on the Tranco top 100,000 domains (shaded) for v2, v3, and v4."))
-S(h2("Contribution of Individual Rules"))
+S(h2("Rule Ablation and Sensitivity"))
 S(body(
-    "Table VI gives the share of PhiUSIIL test URLs on which the most frequent rules fire. The free-hosting rule fires on "
-    f"{R['free_hosting']['phishing_pct']:.1f} percent of phishing URLs and on almost no legitimate ones. Explicit HTTP fires on "
-    "about half of the phishing URLs and never on legitimate ones. Section VII-C explains why it still carries little weight."
+    "Table VII removes one rule at a time. Two rules carry most of the recall, one per source: without free hosting, PhiUSIIL F1 falls by "
+    f"{abs(AB['free_hosting']['d_f1']):.3f}, and without file download, pooled F1 falls by {abs(AB['file_download']['rw_d_f1']):.3f}. Explicit HTTP is the "
+    f"second most important rule on PhiUSIIL, and removing it lowers the ROC-AUC from {ROB['full']['roc_auc']:.3f} to "
+    f"{ROB['full']['roc_auc'] + AB['no_https']['d_auc']:.3f}, which Section VII-C traces to the data set. "
+    f"{sum(1 for a in ROB['ablation'] if abs(a['d_f1']) < 0.001 and abs(a['rw_d_f1']) < 0.001)} of the 22 rules change neither F1 by "
+    "0.001 or more. They describe rare tricks and stay for coverage, not for measured gain. The false alarms on popular sites come "
+    "mainly from brand mismatch, the digit-heavy host, the abused suffix, and the machine label."
+))
+TA, TS = ROB["threshold_alert"], ROB["threshold_strict"]
+S(body(
+    "Table VIII moves the thresholds and the weights. The alert verdict is unchanged for any suspicious threshold from 21 to 32. Below 21, a single weak cue can "
+    f"raise an alert again: at 16, the Tranco false alarm rate is {pct(TA['16']['realworld']['fpr'], 2)} percent. At 18 the F1 is slightly higher at the "
+    "same false alarm rate; this was seen only on the test split, so the threshold was left at 21. The phishing threshold of 40 trades strict recall "
+    f"against little precision. The deep-path threshold of 50 sends {pct(ROB['threshold_deep']['50']['phishing_deep'])} percent of phishing URLs and no "
+    "legitimate URL to the deep path."
+))
+S(body(
+    f"Twenty random draws that change every weight by up to 25 percent leave the alert F1 and FPR unchanged, and equal weights give "
+    f"an ROC-AUC of {WS['equal']['roc_auc']:.3f} against {WS['hand']['roc_auc']:.3f} for the hand-set weights. The decision logic of Section IV-C, that is, which rules fire together, "
+    "therefore decides the alert, and the exact weights matter mainly for the strict verdict and the path. The hand-set weights also do not follow the data: "
+    f"their rank correlation with the development-split log-likelihood ratio of each rule is {signed(ROB['weights']['spearman'], 2)} (p = {ROB['weights']['spearman_p']:.2f}). "
+    f"Weights proportional to that ratio raise the pooled strict F1 from {WS['hand']['rw_strict_f1']:.3f} to {WS['log_ratio']['rw_strict_f1']:.3f} "
+    f"and the alert F1 from {WS['hand']['rw_alert_f1']:.3f} to {WS['log_ratio']['rw_alert_f1']:.3f}, which makes them the first candidate for a next version."
+))
+_ab = sorted(ROB["ablation"], key=lambda a: min(a["d_f1"], a["rw_d_f1"]))
+S(table(
+    "Leave-One-Rule-Out Ablation of v4 (Alert Point)",
+    ["Rule removed", "Weight", "Fires", "ΔF1", "ΔAUC", "ΔF1", "ΔFPR"],
+    [
+        [a["label"].replace("Program or archive download", "File download").replace("Free hosting platform", "Free hosting").replace("Machine-generated label", "Machine label").replace("Email encoding leftover", "Email leftover"),
+         "6–18" if a["id"] == "lure_terms" else str(a["weight"]), f"{R[a['id']]['phishing_pct']:.1f}", signed(a["d_f1"]), signed(a["d_auc"]), signed(a["rw_d_f1"]), signed(100 * a["rw_d_fpr"], 2)]
+        for a in _ab
+    ],
+    [80, 30, 24, 30, 30, 30, 28],
+    f"Fires: percent of PhiUSIIL test phishing URLs. Full set on PhiUSIIL: F1 {ROB['full']['phiusiil']['f1']:.3f}, ROC-AUC {ROB['full']['roc_auc']:.3f}. Full set on the pooled lists: F1 {ROB['full']['realworld']['f1']:.3f}, FPR {pct(ROB['full']['realworld']['fpr'], 2)} percent. ΔFPR is in percentage points. A zero means a change below the last digit shown.",
+    size=15, groups=(("", 2), ("PhiUSIIL", 3), ("Real-world lists", 2)),
 ))
 S(table(
-    "Rule Firing Rates on the PhiUSIIL Test Split (Percent)",
-    ["Rule", "Phishing", "Legitimate"],
-    [
-        [R[k]["label"], f"{R[k]['phishing_pct']:.2f}", f"{R[k]['legitimate_pct']:.2f}"]
-        for k in ("no_https", "free_hosting", "suspicious_tld", "random_label", "digit_heavy_host", "lure_terms", "brand_mismatch")
+    "Sensitivity of v4 to Thresholds and Weights",
+    ["Setting", "F1", "FPR (%)", "F1", "FPR (%)"],
+    [[f"Suspicious at {t}" + (" (used)" if t == "21" else ""), f3(TA[t]["phiusiil"]["f1"]), pct(TA[t]["phiusiil"]["fpr"], 2), f3(TA[t]["realworld"]["f1"]), pct(TA[t]["realworld"]["fpr"], 2)] for t in ("12", "16", "18", "21", "32")]
+    + [[f"Strict, phishing at {t}" + (" (used)" if t == "40" else ""), f3(TS[t]["phiusiil"]["f1"]), pct(TS[t]["phiusiil"]["fpr"], 2), f3(TS[t]["realworld"]["f1"]), pct(TS[t]["realworld"]["fpr"], 2)] for t in ("30", "40", "50")]
+    + [
+        ["Equal weights", f3(WS["equal"]["alert_f1"]), pct(WS["equal"]["alert_fpr"], 2), f3(WS["equal"]["rw_alert_f1"]), pct(WS["equal"]["rw_alert_fpr"], 2)],
+        ["Log-ratio weights", f3(WS["log_ratio"]["alert_f1"]), pct(WS["log_ratio"]["alert_fpr"], 2), f3(WS["log_ratio"]["rw_alert_f1"]), pct(WS["log_ratio"]["rw_alert_fpr"], 2)],
+        ["Random ±25%, 20 draws", f3(ROB["perturb_25"]["alert_f1"][0]), pct(ROB["perturb_25"]["alert_fpr"][0], 2), f3(ROB["perturb_25"]["rw_alert_f1"][0]), pct(ROB["perturb_25"]["rw_alert_fpr"][0], 2)],
+        ["Random ±50%, 20 draws", ci(ROB["perturb_50"]["alert_f1"], 2), ci([100 * v for v in ROB["perturb_50"]["alert_fpr"]], 2), ci(ROB["perturb_50"]["rw_alert_f1"], 2), ci([100 * v for v in ROB["perturb_50"]["rw_alert_fpr"]], 2)],
     ],
-    [110, 65, 65],
+    [96, 38, 38, 38, 38],
+    "Strict rows count only the phishing verdict; all other rows are at the alert point. Ranges give the smallest and largest value of the draws.",
+    size=15, rule_after=(4, 7), groups=(("", 1), ("PhiUSIIL", 2), ("Real-world lists", 2)),
+))
+S(h2("Trained and Language-Model Baselines (RQ4)"))
+S(body(
+    f"Table IX compares the rules with LightGBM. On the full URL, the classifier reaches an F1 of {f3(LF['phiusiil']['f1'])} on PhiUSIIL. That figure is mostly a "
+    "collection artifact: every legitimate test URL is an https://www homepage without a path, and only "
+    f"{pct(LGB['phiusiil_https_www_homepage']['phishing'])} percent of the phishing URLs have this form, so a one-line rule that flags everything else "
+    f"already reaches {f3(SHORT['phiusiil_not_https_www_homepage']['f1'])}. The same model flags every Tranco domain. Without the prefix, its PhiUSIIL F1 is "
+    f"{f3(LN['phiusiil']['f1'])} at an FPR of {pct(LN['phiusiil']['fpr'], 2)} percent, and its recall at the FPR of the rules is "
+    f"{f3(LN['phiusiil']['recall_at_rules_fpr'])} against {f3(t4['alert']['recall'])}. Trained on both sources, it reaches a pooled F1 of "
+    f"{f3(LNR['realworld']['f1'])} against {f3(LGB['rules']['realworld']['f1'])} for the rules. McNemar's test gives p < 0.001 for all of these comparisons except "
+    f"the model without prefix trained on PhiUSIIL alone on the pooled lists, where p = {LN['mcnemar_realworld']['p']:.3f}."
+))
+S(body(
+    "The pooled lists have an artifact of their own: no Tranco entry has a path, but "
+    f"{pct(LGB['path_share']['openphish'], 0)} to {pct(LGB['path_share']['urlhaus'], 0)} percent of the malicious entries do, so flagging any URL with a path "
+    f"reaches an F1 of {f3(SHORT['realworld_has_path']['f1'])}. When every URL is cut to its host, the rules fall to a recall of {f3(HOST['recall'])} and "
+    f"the classifier trained on both sources to an F1 of {f3(LHR['realworld']['f1'])} at {pct(LHR['realworld']['fpr'], 2)} percent false alarms. The conclusion for RQ4 is that a "
+    "trained lexical model detects clearly more wherever it is trained on similar data, that its benchmark scores overstate this lead, and that PhishTrace "
+    "gives up recall in exchange for few false alarms on unseen popular sites and a reason for each decision."
+))
+def _lg(name, m):
+    return [name, f3(m["phiusiil"]["f1"]), pct(m["phiusiil"]["fpr"], 2), f3(m["realworld"]["f1"]), pct(m["realworld"]["fpr"], 2)]
+
+
+S(table(
+    "Rules, Shortcuts, and LightGBM on the Same Test Splits",
+    ["Detector (training data)", "F1", "FPR (%)", "F1", "FPR (%)"],
+    [
+        ["PhishTrace v4 (none)", f3(t4["alert"]["f1"]), pct(LGB["rules"]["phiusiil"]["fpr"], 2), f3(LGB["rules"]["realworld"]["f1"]), pct(LGB["rules"]["realworld"]["fpr"], 2)],
+        ["PhishTrace v4, host only", "—", "—", f3(HOST["f1"]), pct(HOST["fpr"], 2)],
+        ["One-line shortcut", f3(SHORT["phiusiil_not_https_www_homepage"]["f1"]), "0.00", f3(SHORT["realworld_has_path"]["f1"]), "0.00"],
+        _lg("LightGBM, full URL (P)", LF), _lg("LightGBM, full URL (P + R)", LFR),
+        _lg("LightGBM, no prefix (P)", LN), _lg("LightGBM, no prefix (P + R)", LNR),
+        _lg("LightGBM, host only (P)", LH), _lg("LightGBM, host only (P + R)", LHR),
+    ],
+    [110, 30, 36, 30, 38],
+    "P: PhiUSIIL development split. R: real-world development splits. Shortcut: not an https://www homepage (PhiUSIIL), has a path (real-world).",
+    size=15, rule_after=(2,), groups=(("", 1), ("PhiUSIIL", 2), ("Real-world lists", 2)),
+))
+S(body(
+    f"Table X adds the language-model pipeline on {LLM['n']} test URLs ({LLM['phishing']} phishing), drawn from the 1,000-URL sample of Section VI-E; one answer takes "
+    f"{LLM['seconds']['median']:.1f} s (median) on the laptop, which set this size. It labels most phishing URLs legitimate (recall {f3(LS['llm_rag']['recall'])}). Its retrieval step finds an exhibit of a fired rule for "
+    f"{pct(LLM['retrieval_hit']['hit'] / LLM['retrieval_hit']['urls_with_rule'], 0)} percent of the URLs on which any rule fires, so the errors are not only missing evidence. The rules decide "
+    f"{LLM['mcnemar_rules_llm']['rules_only_correct']} URLs correctly that the pipeline gets wrong, and the pipeline {LLM['mcnemar_rules_llm']['model_only_correct']} that the rules get wrong "
+    f"(McNemar p {pval(LLM['mcnemar_rules_llm']['p'])}). This is one small open model with one prompt; larger models may do better."
+))
+S(table(
+    f"Detection on {LLM['n']} Shared PhiUSIIL Test URLs",
+    ["System", "Acc.", "Prec.", "Rec.", "F1", "FPR", "Time"],
+    [
+        [label, f3(m["accuracy"]), f3(m["precision"]), f3(m["recall"]), f3(m["f1"]), f3(m["fpr"]), time]
+        for label, m, time in (
+            ("PhishTrace v4", LS["rules"], f"{CUR['phiusiil']['ms_per_url']:.1f} ms"),
+            ("LightGBM, full URL", LS["lightgbm full|phiusiil"], f"{LF['ms_per_url']:.1f} ms"),
+            ("LightGBM, no prefix", LS["lightgbm no_prefix|phiusiil"], f"{LN['ms_per_url']:.1f} ms"),
+            ("Llama 3.2 3B + RAG", LS["llm_rag"], f"{LLM['seconds']['median']:.1f} s"),
+        )
+    ],
+    [78, 27, 27, 27, 27, 27, 31],
+    f"LightGBM is trained on the PhiUSIIL development split. F1 intervals: rules {ci(LLM['f1_ci95']['rules'])}, language model {ci(LLM['f1_ci95']['llm_rag'])}. Time is per URL and one at a time; it excludes loading the model.",
+    size=15,
 ))
 S(h2("Evidence and Investigation (RQ2 and RQ3)"))
 S(body(
-    f"All three modes were run on a seeded, class-balanced sample of {CUR['chain']['n']} PhiUSIIL test URLs (Table VII). Rules only "
+    f"All three modes were run on a seeded, class-balanced sample of {CUR['chain']['n']} PhiUSIIL test URLs (Table XI). Rules only "
     "publishes every sentence without an exhibit, so its unsupported-claim rate is 100 percent and it completes "
     f"{pct(ch['rules']['completeness'])} percent of the required checks. A single retrieval pass attaches exhibits, but "
     f"only {pct(ch['retrieval']['evidence_support'])} percent of its published sentences are covered by a matching exhibit "
     f"and it completes {pct(ch['retrieval']['completeness'])} percent of the checks, because it never opens the registries "
     "or runs the verifier. The agentic chain publishes no unsupported sentence and completes every required check, using "
-    f"on average {ch['agentic']['exhibit_count']:.2f} exhibits per report. These results answer RQ2 and RQ3: evidence "
-    "retrieved by indicator tag supports every finding, while untargeted retrieval mostly does not."
+    f"on average {ch['agentic']['exhibit_count']:.2f} exhibits per report. The zero holds by construction, because the verifier matches tags "
+    "and every rule has a tagged exhibit. The informative results are the share of sentences that the baselines publish without covering "
+    "evidence and the checks they skip (RQ2 and RQ3)."
 ))
 S(table(
     "Investigation Modes on 1,000 Test URLs",
@@ -606,8 +813,34 @@ S(table(
         [label, pct(ch[mode]["unsupported_rate"]), pct(ch[mode]["evidence_support"] or 0), pct(ch[mode]["completeness"]), f"{ch[mode]['agent_ms']:.3f}"]
         for mode, label in (("rules", "Rules only"), ("retrieval", "Retrieval only"), ("agentic", "Agentic chain"))
     ],
-    [64, 44, 44, 44, 44],
+    [72, 42, 42, 42, 44],
     "Unsupp. = unsupported-claim rate, Support = evidence support, Compl. = completeness, all in percent. Time is the mean chain time after detection.",
+))
+S(h2("Sentence Support Outside the Verifier"))
+S(body(
+    "Because the verifier checks its own tags, support was also tested by means that share nothing with it. Two facts need no judge. "
+    f"Over {LLM['n']} reports ({n(SN['total'])} sentences), the language model cites no exhibit in {SN['no_citation']} sentences and cites an identifier that does not exist in "
+    f"{SN['unknown_exhibit']}. For {LLM['false_https']['urls']} of the {LLM['false_https']['http_urls']} URLs that start with http://, its report states that the URL uses HTTPS. "
+    "PhishTrace cannot make these errors, since its sentences are templates filled from the parsed URL."
+))
+S(body(
+    "A judge model (Phi-3 3.8B {phi3}), which wrote none of the sentences, then read each sentence with its cited evidence for "
+    f"{JG['urls']} URLs and answered whether the evidence "
+    "addresses the topic of the claim. The same PhishTrace sentences with a randomly chosen wrong exhibit are controls. On rule "
+    f"sentences (Table XII), the judge accepts {jshare('PhishTrace', 1)} percent of the correct pairs and {jshare('Control (wrong exhibit)', 1)} percent of the controls, so it tells them apart but is not exact. Retrieval-only "
+    f"pairs the same sentences with evidence that is on topic for {jshare('Retrieval only', 1)} percent, and the language model reaches {jshare('LLM-RAG', 1)} percent. On the two fixed low-signal sentences, it accepts "
+    f"{JG['low_signal']['Control (wrong exhibit)']['supported']} of {JG['low_signal']['Control (wrong exhibit)']['n']} wrong exhibits, so nothing is concluded from them. The wording was chosen on 12 control pairs from other URLs, after a first version "
+    "that answered in JSON rejected every pair. The test covers topic, not truth, and does not replace the human audit prepared in the repository."
+))
+S(table(
+    "Automatic Support Check on Rule Sentences",
+    ["System", "Sentences", "On topic", "95% CI"],
+    [
+        [label, n(JR[k]["n"]), f"{pct(JR[k]['supported'] / JR[k]['n'])}", f"{pct(JR[k]['ci95'][0])}–{pct(JR[k]['ci95'][1])}"]
+        for label, k in (("PhishTrace", "PhishTrace"), ("Control (wrong exhibit)", "Control (wrong exhibit)"), ("Retrieval only", "Retrieval only"), ("Llama 3.2 3B + RAG", "LLM-RAG"))
+    ],
+    [96, 48, 46, 54],
+    f"On topic = share of sentences whose cited evidence the judge accepts, in percent, on {JG['urls']} URLs. Intervals are Wilson. The language model's sentences differ from the rule sentences of the others.",
 ))
 S(h2("Efficiency"))
 S(body(
@@ -631,20 +864,22 @@ S(body(
 ))
 S(h2("What Limits Recall"))
 S(body(
-    f"The v4 detector still labels {n(MISSED)} PhiUSIIL test phishing URLs ({pct(MISSED / t4['phishing_n'])} percent) as not "
-    "phishing. In the analysis of v3 misses on the development splits that led to v4, about half fired no rule at all, and most "
-    "of the rest fired a single weak cue such as explicit HTTP, a long URL, or an abused suffix. Many are bare registered "
+    f"The v4 detector labels {n(MISSED)} PhiUSIIL test phishing URLs ({pct(MISSED / t4['phishing_n'])} percent) as not phishing. "
+    f"{pct(MISS['only_http'] / MISS['n'], 0)} percent of them fire explicit HTTP and nothing else, {pct(MISS['no_rule'] / MISS['n'], 0)} percent fire no rule at all, "
+    f"and the rest fire another weak cue such as a long URL or an abused suffix. Many are bare registered "
     "domains such as http://www.example-shop.com, with no brand token, lure word, or unusual structure. Broader matching was "
-    "tested there and rejected: one-edit typos of brand infrastructure names and alerts on an abused suffix alone recovered "
-    "thousands of misses but multiplied false alarms on popular sites. A detector that reads only "
-    "the URL text cannot tell these apart from legitimate pages. Page content, domain age, or reputation data would be needed. "
-    "The limit lies in URL-only evidence, not in the rule format."
+    "tested on the development splits and rejected: one-edit typos of brand infrastructure names and alerts on an abused suffix alone recovered "
+    "thousands of misses but multiplied false alarms on popular sites. Alerting on HTTP alone would recover most misses on PhiUSIIL, but only because of "
+    "how its legitimate URLs were collected. LightGBM without the prefix recovers part of the gap, which shows that some "
+    "signal remains in the URL text that the rules do not read; at the FPR of the rules, its recall is "
+    f"{f3(LN['phiusiil']['recall_at_rules_fpr'])}. The remaining URLs need page content, domain age, or reputation data."
 ))
 S(h2("Dataset Artifacts"))
 S(body(
-    "Almost every legitimate URL in PhiUSIIL is an https homepage, so explicit HTTP alone would separate the classes there with "
-    "high accuracy. The rules treat HTTP as a weak cue so that the score does not lean on this artifact. None of the legitimate "
-    "development URLs has a path, and the Tranco sites are also homepages, so rules that read the path, such as file download, "
+    "Every legitimate PhiUSIIL test URL is an https://www homepage, so the scheme and the prefix alone almost separate the classes. The rules treat HTTP "
+    f"as a weak cue, but the score still leans on it: without that rule the ROC-AUC is {ROB['full']['roc_auc'] + AB['no_https']['d_auc']:.3f}, not {ROB['full']['roc_auc']:.3f}. The "
+    "pooled lists have the path artifact of Section VI-D, so a simple shortcut scores a higher F1 than the rules on both sources, and the results without "
+    "the artifacts are the more informative ones. The Tranco sites are homepages, so rules that read the path, such as file download, "
     "hex folder, long URL, lure words in the path, and the path-based hosting platforms added in v4, are not tested for false "
     "alarms on real deep links such as sign-in pages, shared documents, or software downloads. A file download alone is only "
     "suspicious, but it fires on legitimate installers as well, and the high URLhaus recall comes mostly from that rule. "
@@ -652,11 +887,9 @@ S(body(
 ))
 S(h2("What the Verifier Guarantees"))
 S(body(
-    "The zero unsupported-claim rate of the agentic chain holds by construction: the verifier blocks any sentence that no "
-    "exhibit covers. Because the knowledge base covers all twenty-two rules, no sentence had to be withheld in the experiment. "
-    "What the comparison does show is how often the baselines publish unsupported text. It also shows that a gap in the "
-    "knowledge base would appear as a withheld sentence, not as an unsupported claim. Support here means tag "
-    "coverage, not semantic entailment, and the exhibits are written for this system rather than drawn from a live threat feed."
+    "The verifier guarantees that a gap in the knowledge base appears as a withheld sentence and not as an unsupported claim. Because the knowledge base covers all "
+    "twenty-two rules, no sentence had to be withheld in the experiment. Tag coverage is not semantic entailment, and the exhibits are written for this "
+    "system rather than drawn from a live threat feed. The guarantee is therefore about traceability: each sentence can be followed to a rule, a weight, and an exhibit."
 ))
 S(h2("Limitations and Threats to Validity"))
 S(body(
@@ -667,29 +900,29 @@ S(body(
     "matches of the added brands on unrelated names. They appeared only on the test split, so they were left unfixed to keep "
     "the test numbers unbiased. Feeds and popularity lists change daily, and the lists will need upkeep. Phishing.Database "
     "marks a link active when it is still reachable, not when it has been re-confirmed as phishing, so some of its labels may "
-    "be stale. Finally, the trained classifiers and language-model baselines of the original proposal were left out to keep "
-    "every decision auditable. Comparing against them is future work."
+    "be stale. The LightGBM features and settings were not tuned, and the language-model baseline covers one 3-billion-parameter model, one prompt, "
+    f"and {LLM['n']} URLs. The sentence audit by human raters is prepared but not finished, so the support results rest on tags, on two mechanical checks, and on a "
+    "small judge model with measurable error."
 ))
 
 S(h1("Conclusion"))
 S(body(
-    "PhishTrace shows that an agentic RAG pipeline can work without any trained or generative model. Twenty-two readable rules "
-    f"reach an accuracy of {f3(t4['alert']['accuracy'])}, a precision of {f3(t4['alert']['precision'])}, and a ROC-AUC of "
-    f"{f3(t4['roc_auc'])} on held-out PhiUSIIL data. On live feeds they flag {pct(ext4['urlhaus']['alert_recall'], 0)} percent "
-    "of malware URLs, mostly as risky downloads, and raise an alert on only "
-    f"{pct(ext4['tranco']['alert_fpr'])} percent of the most popular sites. Pooled real-world accuracy is "
-    f"{f3(rw4['alert']['accuracy'])} and F1 is {f3(rw4['alert']['f1'])}. Recall is the main weakness, because URL text alone "
-    "cannot expose phishing on plain-looking domains. On the investigation side, the score-driven agents run every required "
-    "check and publish only verified sentences, whereas a single retrieval pass leaves most sentences unsupported. Next steps "
-    "are to add page-content and domain-age evidence through the same tool interface and to compare the chain with trained "
-    "and language-model baselines."
+    "PhishTrace shows that a detect, retrieve, verify, and report chain can work without any trained or generative model. On held-out PhiUSIIL "
+    f"data, twenty-two readable rules reach a precision of {f3(t4['alert']['precision'])}, a recall of {f3(t4['alert']['recall'])}, and an F1 of "
+    f"{f3(t4['alert']['f1'])}. On live feeds the pooled F1 is {f3(rw4['alert']['f1'])} with an alert on {pct(ext4['tranco']['alert_fpr'], 2)} percent of popular sites. A trained lexical "
+    "classifier detects more on the same splits, and the comparison puts a number on the price of readable decisions: without the collection artifacts, "
+    f"an F1 of {f3(t4['alert']['f1'])} against {f3(LN['phiusiil']['f1'])} on PhiUSIIL and {f3(LGB['rules']['realworld']['f1'])} against {f3(LNR['realworld']['f1'])} on the pooled lists. The rules "
+    f"do better than a retrieval-augmented 3-billion-parameter model, at roughly {round(LLM['seconds']['median'] * 1000 / CUR['phiusiil']['ms_per_url'], -3):,.0f} times the speed. Most recall rests on two rules, and the exact "
+    "weights matter little at the alert point. Next steps are weights taken from the development data, page-content and domain-age evidence through the same tool interface, "
+    "a benchmark with legitimate deep links, and the human audit of report sentences."
 ))
 
 S(h5("Code Availability"))
 S(body(
     "The implementation, evaluation script, and figure scripts are available at https://github.com/mahapara24/phistrace. "
-    "Running python scripts/evaluate.py reproduces every number in this paper from the public data files listed in the "
-    "README. Running python scripts/evaluate.py --sensitive --out data/eval_v4_sensitive.json reproduces the sensitive "
+    "Running python scripts/evaluate.py reproduces the detection and chain results from the public data files listed in the "
+    "README. The scripts robustness.py, baseline_lightgbm.py, baseline_llm_rag.py, summarize_llm.py, judge_support.py, and make_audit.py in the same folder reproduce the "
+    "intervals, tests, ablation, baselines, and audit sheets; the rule sets v1 to v3 are in the folder legacy. Running python scripts/evaluate.py --sensitive --out data/eval_v4_sensitive.json reproduces the sensitive "
     "variant. The results of the earlier rule sets are kept in "
     "data/eval_baseline.json, data/eval_v2.json, and data/eval_v3.json."
 ))
