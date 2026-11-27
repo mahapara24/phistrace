@@ -80,6 +80,8 @@ The rule sets v1 to v3 are in `legacy/`. They reproduce the PhiUSIIL counts in `
 
 Held-out test results (v4, alert point): PhiUSIIL accuracy 0.813, precision 0.998, recall 0.566, F1 0.722, FPR 0.075%, ROC-AUC 0.954. Pooled OpenPhish + Phishing.Database + URLhaus against Tranco top-100k: accuracy 0.923, precision 0.986, recall 0.802, F1 0.884, false alarms 0.65%. v4 keeps the 22 rules of v3 and widens their lists (hosting platforms, shorteners, brands); see the Method page.
 
+Comparison on the same splits (F1, PhiUSIIL / pooled lists): PhishTrace 0.722 / 0.884; LightGBM without the scheme and www prefix 0.861 / 0.900 (trained on PhiUSIIL) and 0.848 / 0.970 (trained on both sources). On 500 shared PhiUSIIL test URLs, Llama 3.2 3B with retrieval reaches F1 0.364 against 0.732 for the rules. The comparison models are baselines only; PhishTrace itself uses no trained or generative model.
+
 Testing screenshots: [`screenshots/`](screenshots/README.md) holds full PhishTrace reports for hand-picked examples (not a detection test): 15 real phishing URLs plus the classroom example, 2 malware URLs, 5 safe sites, and one three-mode comparison, with a results table.
 
 Limitation: every legitimate URL in PhiUSIIL and Tranco is a bare homepage, so false alarms on real deep links (sign-in pages, shared documents, software downloads) are not measured.
@@ -105,3 +107,5 @@ soffice --headless --convert-to odt --outdir paper paper/Mahapara_PhishTrace_IEE
 | `paper/Mahapara_PhishTrace_IEEE.docx` | Word |
 | `paper/Mahapara_PhishTrace_IEEE.odt` | OpenDocument Text |
 | `paper/Mahapara_PhishTrace_IEEE.pdf` | PDF |
+
+These files are the revised paper (25 November 2026, 8 pages). It adds the LightGBM and language-model baselines, rule ablation, threshold and weight sensitivity, confidence intervals, McNemar tests, and a separate sentence-support check. The human audit of report sentences is prepared but not finished. The first version (18 November 2026) is in the git history at commit `7b7332f`.
