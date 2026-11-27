@@ -830,7 +830,7 @@ S(body(
     f"sentences (Table XII), the judge accepts {jshare('PhishTrace', 1)} percent of the correct pairs and {jshare('Control (wrong exhibit)', 1)} percent of the controls, so it tells them apart but is not exact. Retrieval-only "
     f"pairs the same sentences with evidence that is on topic for {jshare('Retrieval only', 1)} percent, and the language model reaches {jshare('LLM-RAG', 1)} percent. On the two fixed low-signal sentences, it accepts "
     f"{JG['low_signal']['Control (wrong exhibit)']['supported']} of {JG['low_signal']['Control (wrong exhibit)']['n']} wrong exhibits, so nothing is concluded from them. The wording was chosen on 12 control pairs from other URLs, after a first version "
-    "that answered in JSON rejected every pair. The test covers topic, not truth, and does not replace the human audit prepared in the repository."
+    "that answered in JSON rejected every pair. The test covers topic, not truth."
 ))
 S(table(
     "Automatic Support Check on Rule Sentences",
@@ -901,7 +901,7 @@ S(body(
     "the test numbers unbiased. Feeds and popularity lists change daily, and the lists will need upkeep. Phishing.Database "
     "marks a link active when it is still reachable, not when it has been re-confirmed as phishing, so some of its labels may "
     "be stale. The LightGBM features and settings were not tuned, and the language-model baseline covers one 3-billion-parameter model, one prompt, "
-    f"and {LLM['n']} URLs. The sentence audit by human raters is prepared but not finished, so the support results rest on tags, on two mechanical checks, and on a "
+    f"and {LLM['n']} URLs. No human raters checked the report sentences, so the support results rest on tags, on two mechanical checks, and on a "
     "small judge model with measurable error."
 ))
 
@@ -914,15 +914,15 @@ S(body(
     f"an F1 of {f3(t4['alert']['f1'])} against {f3(LN['phiusiil']['f1'])} on PhiUSIIL and {f3(LGB['rules']['realworld']['f1'])} against {f3(LNR['realworld']['f1'])} on the pooled lists. The rules "
     f"do better than a retrieval-augmented 3-billion-parameter model, at roughly {round(LLM['seconds']['median'] * 1000 / CUR['phiusiil']['ms_per_url'], -3):,.0f} times the speed. Most recall rests on two rules, and the exact "
     "weights matter little at the alert point. Next steps are weights taken from the development data, page-content and domain-age evidence through the same tool interface, "
-    "a benchmark with legitimate deep links, and the human audit of report sentences."
+    "a benchmark with legitimate deep links, and a human check of report sentences."
 ))
 
 S(h5("Code Availability"))
 S(body(
     "The implementation, evaluation script, and figure scripts are available at https://github.com/mahapara24/phistrace. "
     "Running python scripts/evaluate.py reproduces the detection and chain results from the public data files listed in the "
-    "README. The scripts robustness.py, baseline_lightgbm.py, baseline_llm_rag.py, summarize_llm.py, judge_support.py, and make_audit.py in the same folder reproduce the "
-    "intervals, tests, ablation, baselines, and audit sheets; the rule sets v1 to v3 are in the folder legacy. Running python scripts/evaluate.py --sensitive --out data/eval_v4_sensitive.json reproduces the sensitive "
+    "README. The scripts robustness.py, baseline_lightgbm.py, baseline_llm_rag.py, summarize_llm.py, and judge_support.py in the same folder reproduce the "
+    "intervals, tests, ablation, baselines, and support check; the rule sets v1 to v3 are in the folder legacy. Running python scripts/evaluate.py --sensitive --out data/eval_v4_sensitive.json reproduces the sensitive "
     "variant. The results of the earlier rule sets are kept in "
     "data/eval_baseline.json, data/eval_v2.json, and data/eval_v3.json."
 ))

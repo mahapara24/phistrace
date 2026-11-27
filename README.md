@@ -72,8 +72,6 @@ python scripts/baseline_lightgbm.py      # lexical LightGBM on the same splits
 python scripts/baseline_llm_rag.py --limit 500   # Llama 3.2 3B with retrieval, 500 URLs
 python scripts/judge_support.py          # automatic sentence-support check
 python scripts/summarize_llm.py          # writes data/eval_llm_rag.json
-python scripts/make_audit.py             # blinded audit workbooks for two human raters
-python scripts/make_audit.py --score     # agreement and support rates, after both raters finish
 ```
 
 The rule sets v1 to v3 are in `legacy/`. They reproduce the PhiUSIIL counts in `data/eval_baseline.json`, `data/eval_v2.json` and `data/eval_v3.json`.
@@ -108,4 +106,4 @@ soffice --headless --convert-to odt --outdir paper paper/Mahapara_PhishTrace_IEE
 | `paper/Mahapara_PhishTrace_IEEE.odt` | OpenDocument Text |
 | `paper/Mahapara_PhishTrace_IEEE.pdf` | PDF |
 
-These files are the revised paper (25 November 2026, 8 pages). It adds the LightGBM and language-model baselines, rule ablation, threshold and weight sensitivity, confidence intervals, McNemar tests, and a separate sentence-support check. The human audit of report sentences is prepared but not finished. The first version (18 November 2026) is in the git history at commit `7b7332f`.
+These files are the revised paper (25 November 2026, 8 pages). It adds the LightGBM and language-model baselines, rule ablation, threshold and weight sensitivity, confidence intervals, McNemar tests, and a separate sentence-support check. The first version (18 November 2026) is in the git history at commit `7b7332f`.
